@@ -159,23 +159,32 @@ kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:3px;border:
 #hints{position:absolute;left:24px;bottom:calc(26px + var(--safe-b));font:400 10px/2 var(--sans);
   letter-spacing:.1em;color:var(--ink-faint)}
 
-/* ───────────── TOUCH ───────────── */
-#touch{position:absolute;inset:0;pointer-events:none}
-#wheelPad{position:absolute;left:20px;bottom:calc(22px + var(--safe-b));width:132px;height:132px;
-  border:1px solid var(--line);border-radius:50%;background:rgba(8,12,18,.5);backdrop-filter:blur(10px);
-  pointer-events:auto;display:grid;place-items:center;touch-action:none}
-#wheelPad span{position:absolute;bottom:9px;font:600 8px/1 var(--sans);letter-spacing:.28em;color:var(--ink-faint)}
-#wheelKnob{width:54px;height:54px;border-radius:50%;background:var(--accent);opacity:.85;
-  box-shadow:0 0 26px -4px var(--accent);transition:transform .06s linear}
-#pedals{position:absolute;right:18px;bottom:calc(22px + var(--safe-b));display:flex;gap:12px;pointer-events:auto}
-.pedal{width:74px;height:74px;border-radius:50%;border:1px solid var(--line);
-  background:rgba(8,12,18,.55);backdrop-filter:blur(10px);font-size:19px;color:var(--ink-dim);touch-action:none}
-.pedal.gas{width:96px;height:96px;border-color:var(--accent);color:var(--accent);font-size:24px}
-.pedal.down{background:var(--accent);color:#04080b}
+/* ───────────── TOUCH: drag-anywhere joystick ───────────── */
+#swipe{position:fixed;inset:0;z-index:30;display:none;touch-action:none}
+#swipeRing{position:absolute;width:154px;height:154px;margin:-77px 0 0 -77px;
+  border:1px solid rgba(231,238,246,.18);border-radius:50%;
+  background:radial-gradient(circle,rgba(10,16,24,.5) 0%,rgba(10,16,24,.14) 70%,transparent 100%);
+  backdrop-filter:blur(5px);opacity:0;transition:opacity .16s ease;pointer-events:none}
+#swipeRing.on{opacity:1}
+#swipeKnob{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;
+  border-radius:50%;background:var(--accent);opacity:.72;box-shadow:0 0 26px -6px var(--accent);
+  transition:transform .05s linear}
+#swipeRing .ax{position:absolute;font-style:normal;font-size:10px;color:var(--ink-faint);
+  left:50%;top:50%;transform-origin:0 0}
+#swipeRing .ax.up{transform:translate(-4px,-70px)}
+#swipeRing .ax.dn{transform:translate(-4px,60px)}
+#swipeRing .ax.lf{transform:translate(-70px,-5px)}
+#swipeRing .ax.rt{transform:translate(62px,-5px)}
+#swipeHint{position:absolute;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%);
+  padding:9px 16px;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--line);
+  border-radius:2px;font:600 9px/1 var(--sans);letter-spacing:.2em;color:var(--ink-dim);
+  white-space:nowrap;transition:opacity .5s ease}
+#swipeHint.gone{opacity:0}
 .mobile-only{display:none}
 @media(hover:none) and (pointer:coarse){
   .mobile-only{display:block}
   .desktop-only{display:none}
+  #swipe{display:block}          /* ID beats .mobile-only, so restate it here */
   #speedo{width:82px;height:82px;right:auto;left:50%;transform:translateX(-50%);
     bottom:calc(10px + var(--safe-b));top:auto}
   #speedo svg{width:82px;height:82px}
@@ -382,13 +391,13 @@ kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:3px;border:
     <div><kbd>SHIFT</kbd> drift · <kbd>E</kbd> chapter · <kbd>C</kbd> camera</div>
   </div>
 
-  <!-- mobile controls -->
-  <div id="touch" class="mobile-only">
-    <div id="wheelPad"><div id="wheelKnob"></div><span>STEER</span></div>
-    <div id="pedals">
-      <button id="pedalBrake" class="pedal">■</button>
-      <button id="pedalGas" class="pedal gas">▲</button>
-    </div>
+  <div id="swipeHint" class="mobile-only">SWIPE ANYWHERE &nbsp;·&nbsp; ↑ GO &nbsp; ↓ REVERSE &nbsp; ← → STEER</div>
+</div>
+
+<!-- ░░ TOUCH GESTURE LAYER ░░ -->
+<div id="swipe" class="mobile-only">
+  <div id="swipeRing"><div id="swipeKnob"></div>
+    <i class="ax up">▲</i><i class="ax dn">▼</i><i class="ax lf">◀</i><i class="ax rt">▶</i>
   </div>
 </div>
 
@@ -3184,6 +3193,9 @@ function buildStatue(scene, env, quality) {
   // ---- the figure (procedural stand-in, replaced by the Meshy scan if present)
   const mount = new THREE.Group();
   mount.position.y = 11.3;
+  // 45° clockwise (negative Y is clockwise seen from above) for a
+  // three-quarter view rather than a flat face-on one
+  mount.rotation.y = -Math.PI / 4;
   g.add(mount);
   STATUE_MOUNT = mount;
 
@@ -3794,7 +3806,7 @@ const IS_TOUCH = window.matchMedia('(hover:none) and (pointer:coarse)').matches;
 const Input = {
   keys: {},
   throttle: 0, steer: 0, handbrake: false,
-  touchSteer: 0, touchGas: 0, touchBrake: 0,
+  touchSteer: 0, touchThrottle: 0,
   init() {
     addEventListener('keydown', e => {
       const k = e.key.toLowerCase();
@@ -3812,37 +3824,46 @@ const Input = {
     if (IS_TOUCH) this.initTouch();
   },
   initTouch() {
-    const pad = $('#wheelPad'), knob = $('#wheelKnob');
-    let id = null, cx = 0, half = 1;
+    // Drag anywhere: up accelerates, down reverses, left/right steer. The ring
+    // anchors wherever the thumb lands, so there is no pad to aim for.
+    const layer = $('#swipe'), ring = $('#swipeRing'), knob = $('#swipeKnob');
+    const hint = $('#swipeHint');
+    const REACH = 78;               // px to full deflection
+    let id = null, ox = 0, oy = 0;
+
     const start = (e) => {
-      const t = e.changedTouches[0]; id = t.identifier;
-      const r = pad.getBoundingClientRect(); cx = r.left + r.width / 2; half = r.width / 2 - 12;
-      move(e);
+      const t = e.changedTouches[0];
+      id = t.identifier; ox = t.clientX; oy = t.clientY;
+      ring.style.left = ox + 'px'; ring.style.top = oy + 'px';
+      ring.classList.add('on');
+      knob.style.transform = 'translate(0,0)';
+      if (hint) hint.classList.add('gone');
     };
     const move = (e) => {
       for (const t of e.changedTouches) {
         if (t.identifier !== id) continue;
-        const dx = clamp((t.clientX - cx) / half, -1, 1);
-        this.touchSteer = dx;
-        knob.style.transform = `translateX(${dx * half * 0.72}px)`;
+        const kx = clamp((t.clientX - ox) / REACH, -1, 1);
+        const ky = clamp((oy - t.clientY) / REACH, -1, 1);
+        this.touchSteer = Math.abs(kx) < 0.12 ? 0 : kx;      // deadzone
+        this.touchThrottle = Math.abs(ky) < 0.12 ? 0 : ky;
+        knob.style.transform = `translate(${kx * 47}px, ${-ky * 47}px)`;
       }
     };
     const end = (e) => {
-      for (const t of e.changedTouches) if (t.identifier === id) { id = null; this.touchSteer = 0; knob.style.transform = 'translateX(0)'; }
+      for (const t of e.changedTouches) {
+        if (t.identifier !== id) continue;
+        id = null;
+        this.touchSteer = 0; this.touchThrottle = 0;
+        ring.classList.remove('on');
+        knob.style.transform = 'translate(0,0)';
+      }
     };
-    pad.addEventListener('touchstart', start, { passive: true });
-    pad.addEventListener('touchmove', move, { passive: true });
-    pad.addEventListener('touchend', end, { passive: true });
-    pad.addEventListener('touchcancel', end, { passive: true });
-
-    const bind = (el, set) => {
-      el.addEventListener('touchstart', e => { e.preventDefault(); set(1); el.classList.add('down'); }, { passive: false });
-      const off = () => { set(0); el.classList.remove('down'); };
-      el.addEventListener('touchend', off); el.addEventListener('touchcancel', off);
-    };
-    bind($('#pedalGas'), v => this.touchGas = v);
-    bind($('#pedalBrake'), v => this.touchBrake = v);
+    layer.addEventListener('touchstart', start, { passive: true });
+    layer.addEventListener('touchmove', move, { passive: true });
+    layer.addEventListener('touchend', end, { passive: true });
+    layer.addEventListener('touchcancel', end, { passive: true });
   },
+
   sample() {
     const k = this.keys;
     let th = 0, st = 0;
@@ -3850,20 +3871,8 @@ const Input = {
     if (k['s'] || k['arrowdown']) th -= 1;
     if (k['a'] || k['arrowleft']) st -= 1;
     if (k['d'] || k['arrowright']) st += 1;
-    // end card
-    $('#ecStats').innerHTML = PROFILE.stats.map(st =>
-      `<div><b>${st.k}</b><span>${st.s}</span></div>`).join('');
-    const mail = $('#ecMail');
-    mail.textContent = PROFILE.email; mail.href = 'mailto:' + PROFILE.email;
-    $('#ecAgain').addEventListener('click', () => { $('#endcard').classList.add('hidden'); this.finished = false; this.ctx.travelTo(-1); });
-    $('#ecChapters').addEventListener('click', () => { $('#endcard').classList.add('hidden'); this.finished = false; this.ctx.travelTo(-1); this.toggleMap(true); });
-    $('#ecClose').addEventListener('click', () => {
-      window.open('', '_self'); window.close();
-      $('#ecClose').textContent = 'CLOSE THIS TAB';
-    });
-
     if (IS_TOUCH) {
-      th += this.touchGas - this.touchBrake;
+      th += this.touchThrottle;
       st += this.touchSteer;
     }
     this.throttle = clamp(th, -1, 1);
@@ -3888,7 +3897,7 @@ const UI = {
     $('#introStats').innerHTML = PROFILE.stats.map(s =>
       `<div class="st"><b>${s.k}</b><span>${s.v}</span></div>`).join('');
     $('#introKeys').innerHTML = IS_TOUCH
-      ? 'Drag the wheel to steer · hold ▲ to accelerate'
+      ? 'Swipe anywhere to drive — up to go, down to reverse, left and right to steer'
       : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to drive &nbsp;·&nbsp; <kbd>E</kbd> to open a chapter &nbsp;·&nbsp; <kbd>M</kbd> for the route map';
 
     // rail
@@ -3915,8 +3924,8 @@ const UI = {
 
     // help
     $('#hpGrid').innerHTML = IS_TOUCH ? `
-      <div><b>STEER</b>Drag the wheel pad on the left.</div>
-      <div><b>DRIVE</b>Hold the large ▲ pedal. The square pedal brakes and reverses.</div>
+      <div><b>DRIVE</b>Press and hold anywhere, then swipe up. Further = faster.</div>
+      <div><b>STEER</b>Swipe left or right from where your thumb landed. Swipe down to brake and reverse.</div>
       <div><b>CHAPTERS</b>Park inside a glowing ring, then tap OPEN CHAPTER.</div>
       <div><b>JUMP</b>Tap any year on the rail to travel straight to that district.</div>` : `
       <div><b>DRIVE</b><kbd>W</kbd><kbd>S</kbd> or <kbd>↑</kbd><kbd>↓</kbd> throttle and brake.</div>
@@ -4441,6 +4450,17 @@ async function boot() {
       if (d < best) { best = d; bx = g.getX(i); bz = g.getZ(i); }
     }
     return { car: [+pos.x.toFixed(2), +pos.z.toFixed(2)], roadVert: [+bx.toFixed(2), +bz.toFixed(2)], roadDist: +Math.sqrt(best).toFixed(2) };
+  };
+  window.__input = () => ({ th: +Input.throttle.toFixed(2), st: +Input.steer.toFixed(2), kmh: Math.round(vehicle.kmh) });
+  window.__place = (x, z, yaw) => {
+    vehicle.pos.set(x, 0, z); vehicle.yaw = yaw; vehicle.speed = 0;
+    vehicle.applyTransform(0.016); Cam.snapTo(vehicle, null);
+    if (!state.started) UI.start(false);
+  };
+  window.__statue = () => {
+    const w = new THREE.Vector3(); STATUE_MOUNT.getWorldPosition(w);
+    return { pos: [+w.x.toFixed(1), +w.y.toFixed(1), +w.z.toFixed(1)],
+             mountYawDeg: Math.round(STATUE_MOUNT.rotation.y * 180 / Math.PI) };
   };
   window.__jumpT = (t) => { vehicle.reset(t); Cam.snapTo(vehicle, null); if (!state.started) UI.start(false); };
   window.__dbg = () => ({
