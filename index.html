@@ -9,6 +9,13 @@
 <meta property="og:title" content="Kentavien Willis | Career Drive" />
 <meta property="og:description" content="Drive through a 3D interactive world covering cloud operations, infrastructure, identity, enterprise support, and application ownership." />
 <meta property="og:type" content="website" />
+<meta property="og:url" content="https://kentavienwillis-dev.github.io/career-drive/" />
+<meta property="og:image" content="https://kentavienwillis-dev.github.io/career-drive/og-image.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:image" content="https://kentavienwillis-dev.github.io/career-drive/og-image.jpg" />
+<meta name="twitter:title" content="Kentavien Willis | Career Drive" />
+<meta name="twitter:description" content="Drive a 3D world through 11 years of enterprise IT: cloud, infrastructure, identity, support, and application ownership." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%2305080c'/%3E%3Crect x='6' y='6' width='52' height='52' fill='none' stroke='%2335e0d4' stroke-width='3'/%3E%3Ctext x='32' y='42' font-family='Arial Narrow,Arial' font-size='26' font-weight='700' fill='%2335e0d4' text-anchor='middle'%3EKW%3C/text%3E%3C/svg%3E" />
 <meta name="author" content="Kentavien Willis" />
 <meta name="robots" content="index,follow" />
@@ -767,7 +774,7 @@ const CHAPTERS = [
     ground: 0x24463a,
     fog: 0x12302a,
     sky: [0x11291f, 0x255a44, 0x6cae8c],
-    frame: 52,
+    frame: 64,
     grammar: 'vault'
   },
   {
@@ -4176,6 +4183,9 @@ const Cam = {
   shake: 0,
   intro: true,
   introT: 0,
+  arrival: null,      // {c, fr} of the district you're parked at
+  arrLast: { fr: 32 },
+  arrT: 0,
   hero: null,             // {center, yaw} when parked at a district
   cycle() {
     this.mode = (this.mode + 1) % 4;
@@ -4243,15 +4253,26 @@ const Cam = {
       this.look.lerp(new THREE.Vector3(v.pos.x, 1.4, v.pos.z), 1 - Math.exp(-6 * dt));
       camera.fov = damp(camera.fov, 40, 3, dt);
     } else {
-      const back = this.mode === 1 ? 7.4 : 9.8;
-      const up = this.mode === 1 ? 2.6 : 3.9;
+      // Parked at a district? Ease back and tilt up so the landmark fits the
+      // frame — otherwise the card, the vault and the scales run off the top.
+      if (this.arrival) this.arrLast = this.arrival;
+      this.arrT = damp(this.arrT, this.arrival ? 1 : 0, 2.4, dt);
+      const fr = this.arrLast.fr || 32;
+      let back = this.mode === 1 ? 7.4 : 9.8;
+      let up = this.mode === 1 ? 2.6 : 3.9;
+      let lookY = 1.5;
+      if (this.arrT > 0.005) {
+        back = lerp(back, 9 + fr * 0.42, this.arrT);
+        up = lerp(up, 4 + fr * 0.26, this.arrT);
+        lookY = lerp(1.5, 2.5 + fr * 0.26, this.arrT);
+      }
       const lag = v.speed < -0.6 ? -1 : 1;
       const want = new THREE.Vector3(v.pos.x, up, v.pos.z)
         .addScaledVector(fwd, -back * lag)
         .addScaledVector(new THREE.Vector3(Math.cos(v.yaw), 0, -Math.sin(v.yaw)), -v.slip * 4.5);
       const k = 1 - Math.exp(-(6.4 + sp * 5) * dt);
       this.pos.lerp(want, k);
-      const lookAt = new THREE.Vector3(v.pos.x, 1.5, v.pos.z).addScaledVector(fwd, 11 + sp * 16);
+      const lookAt = new THREE.Vector3(v.pos.x, lookY, v.pos.z).addScaledVector(fwd, 11 + sp * 16);
       this.look.lerp(lookAt, 1 - Math.exp(-8 * dt));
       camera.fov = damp(camera.fov, 52 + sp * 16, 3.2, dt);
     }
@@ -4702,6 +4723,9 @@ function updateProximity(dt) {
   const slow = Math.abs(vehicle.speed) < 7;
   if (inRing && slow) active = near;
 
+  Cam.arrival = active >= 0
+    ? { c: (active === 6 ? summit : districts[active]).center, fr: (active === 6 ? SUMMIT : CHAPTERS[active]).frame }
+    : null;
   if (active !== UI.current) {
     UI.current = active;
     UI.setPrompt(active >= 0 && UI.opened < 0, 'OPEN CHAPTER');
