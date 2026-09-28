@@ -6686,10 +6686,10 @@ void main() {`),r=o.indexOf("#include <clearcoat_normal_fragment_maps>")>=0?"#in
        into a wash of coloured mud. */
     float lum2 = dot(col, vec3(0.2126,0.7152,0.0722));
     float shadow = 1.0 - smoothstep(0.0, 0.42, lum2);
-    col = mix(col, vec3(lum2) * vec3(0.94, 0.99, 1.10), shadow * 0.26);
+    col = mix(col, vec3(lum2) * vec3(0.94, 0.99, 1.10), shadow * 0.30);
     // and a touch more colour in the mid-tones, where the signage lives
     float mids = smoothstep(0.10, 0.55, lum2) * (1.0 - smoothstep(0.62, 0.95, lum2));
-    col = mix(vec3(lum2), col, 1.0 + mids * 0.36);   // reference frame is a shade more saturated
+    col = mix(vec3(lum2), col, 1.0 + mids * 0.42);   // reference frame is a shade more saturated
 
     /* ATMOSPHERIC INSCATTER.
 
@@ -6701,7 +6701,7 @@ void main() {`),r=o.indexOf("#include <clearcoat_normal_fragment_maps>")>=0?"#in
        falloff here costs three ALU ops and no extra pass, and it buys both the
        fog directionality and the volumetric glow the scene had none of. */
     vec2 gd = (uv - uGlowUV) * vec2(uAspect, 1.0);
-    float gl = max(0.0, 1.0 - length(gd) * 1.35);
+    float gl = max(0.0, 1.0 - length(gd) * 1.25);
     col += uGlowCol * uGlowAmt * gl * gl * gl;
 
     /* FILM LUT BEHAVIOUR the contrast curve above does not have.
@@ -6716,11 +6716,11 @@ void main() {`),r=o.indexOf("#include <clearcoat_normal_fragment_maps>")>=0?"#in
           magenta sign clips to saturated magenta instead of blooming out to a
           white core with coloured fringes \u2014 a hard tell, and the reason the
           neon looked like flat vector art rather than light. */
-    col = col * 0.984 + vec3(0.012, 0.014, 0.021);
+    col = col * 0.984 + vec3(0.014, 0.016, 0.024);
     float lum3 = dot(col, vec3(0.2126,0.7152,0.0722));
     float hi = smoothstep(0.55, 1.0, lum3);
-    col = mix(col, col * vec3(1.08, 1.01, 0.91), hi * 0.38);
-    col = mix(col, vec3(lum3), hi * hi * 0.42);
+    col = mix(col, col * vec3(1.10, 1.02, 0.89), hi * 0.38);
+    col = mix(col, vec3(lum3), hi * hi * 0.48);
 
     /* Vignette, aspect-corrected. r2 was computed in raw UV space, so on a
        16:9 frame it darkened top and bottom exactly as hard as the sides \u2014
