@@ -6877,14 +6877,40 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 
 </script>
 <script>
-/* v9868 street fx: CHEAP emissive lamp fixtures (zero light-shader cost) at every district + statue,
-   plus one low-intensity real SpotLight per statue so the 3 figures are genuinely lit.
-   Replaces v9867's 21 real SpotLights, which pushed visible spotlights 14->35 and broke perf/Safari. */
+/* v9869: perf-safe emissive street fx + 3 statue spots; car wheel/white-part fix; hands-off auto museum tour */
 (function(){
   var DIST=[[-19.7,28.5,-173.8],[270.1,23.1,-148.0],[130.5,17.4,-277.5],[-7.8,28.8,-465.2],[-188.2,36.8,-621.5],[81.8,12.8,-603.4]];
   var OFF=[[-16,0,-14],[16,0,-14],[0,0,18]];
   var STAT=[[16.8,0,-46.4],[33.5,0,-98.5],[212.7,0,-752.5]];
   function ready(S){var ps=false;S.traverse(function(o){if(o.isSpotLight&&o.name&&o.name.indexOf("pool-spot")>=0)ps=true;});return ps;}
+  function fixCar(S){
+    var car=S.getObjectByName("car"); if(!car) return;
+    car.traverse(function(o){
+      if(o.material){
+        var m0=Array.isArray(o.material)?o.material[0]:o.material;
+        if(m0&&m0.name==="wheelOriginalHidden"){o.visible=false;}                 // hide stray white original wheels
+        (Array.isArray(o.material)?o.material:[o.material]).forEach(function(m){
+          if(m.color&&m.color.r>.85&&m.color.g>.85&&m.color.b>.85&&m.metalness!=null&&m.metalness>.6&&m.type!=="MeshBasicMaterial"){
+            m.color.setRGB(.05,.06,.09); if(m.metalness>.9)m.roughness=Math.max(m.roughness||0,.2);   // darken stray white metal parts
+          }
+        });
+      }
+    });
+  }
+  function startAutoTour(){
+    var lastAuto=-1;
+    setInterval(function(){
+      var st=window.__ui; if(!st||!st.started||st.finished)return;
+      if(st.modalOpen)return;
+      var cur=st.current;
+      if(cur>=0 && cur!==lastAuto && !(st.opened>=0)){
+        lastAuto=cur;
+        try{ st.showDossier(cur); }catch(e){ return; }
+        var mine=cur;
+        setTimeout(function(){ if(st.opened>=0 && st.current===mine && !st.modalOpen){ try{ st.resumeDrive(); }catch(e){} } }, 13000);
+      }
+    },600);
+  }
   function build(){
     var S=window.__scene,T=window.THREE;
     if(!S||!T||!T.SpotLight){return setTimeout(build,400);}
@@ -6894,10 +6920,8 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
     var headGeo=new T.SphereGeometry(0.9,10,8);
     var poleMat=new T.MeshStandardMaterial({color:0x14181e,roughness:.5,metalness:.7});
     function lamp(x,base,z,warm,poleH,discR){
-      var head=new T.Mesh(headGeo,new T.MeshBasicMaterial({color:warm}));
-      head.position.set(x,base+poleH,z); head.name="street-lamp";
-      var pole=new T.Mesh(new T.CylinderGeometry(0.16,0.16,poleH,6),poleMat);
-      pole.position.set(x,base+poleH/2-0.2,z);
+      var head=new T.Mesh(headGeo,new T.MeshBasicMaterial({color:warm})); head.position.set(x,base+poleH,z); head.name="street-lamp";
+      var pole=new T.Mesh(new T.CylinderGeometry(0.16,0.16,poleH,6),poleMat); pole.position.set(x,base+poleH/2-0.2,z);
       var disc=new T.Mesh(new T.CircleGeometry(discR,20),new T.MeshBasicMaterial({color:warm,transparent:true,opacity:0.15,blending:T.AdditiveBlending,depthWrite:false}));
       disc.rotation.x=-Math.PI/2; disc.position.set(x,0.06,z);
       G.add(head);G.add(pole);G.add(disc);
@@ -6905,16 +6929,17 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
     DIST.forEach(function(p){var base=Math.max(p[1],10);OFF.forEach(function(o){lamp(p[0]+o[0],base,p[2]+o[2],0xffcf8a,7,9);});});
     STAT.forEach(function(p){
       lamp(p[0]+5,p[1],p[2]+5,0xfff4d6,8,7);
-      var sl=new T.SpotLight(0xfff4d6,300,120,Math.PI/6,0.5,2);
-      sl.castShadow=false; sl.name="statue-streetlight";
-      sl.position.set(p[0]+5,p[1]+24,p[2]+5); sl.target.position.set(p[0],p[1]+5,p[2]);
-      S.add(sl); S.add(sl.target);
+      var sl=new T.SpotLight(0xfff4d6,300,120,Math.PI/6,0.5,2); sl.castShadow=false; sl.name="statue-streetlight";
+      sl.position.set(p[0]+5,p[1]+24,p[2]+5); sl.target.position.set(p[0],p[1]+5,p[2]); S.add(sl); S.add(sl.target);
     });
     S.add(G);
-    try{console.log("[career-drive] street-fx: "+G.children.length+" emissive elems + 3 statue spots; visible-light budget preserved");}catch(e){}
+    fixCar(S);
+    var n=0,ci=setInterval(function(){fixCar(S); if(++n>8)clearInterval(ci);},700);   // re-apply if car assembles late
+    startAutoTour();
+    try{console.log("[career-drive] v9869: street-fx "+G.children.length+" + 3 statue spots; wheel/white fix; auto-tour ON");}catch(e){}
   }
   setTimeout(build,2000);
 })();
 </script>
 </body>
-</html><!--v9868-streetfx-->
+</html><!--v9869-autotour-->
