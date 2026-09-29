@@ -7018,7 +7018,7 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 </script>
 
 <script>
-/* v9884f: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
+/* v9885: plaza watchdog + better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
 (function(){
   var ran=0, done={};
   function work(){
@@ -7205,6 +7205,48 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
           }
         });
         done.uncull=true;
+      }catch(e){}
+    }
+
+    // (4c) Plaza watchdog — auto-open each district's dossier when the car reaches its plaza.
+    // Fixes reported bug where AFLAC/Boeing/Stefanini/FCB/Aldridge dossier menus did not appear during guided drive.
+    if(!done.plazaWatch && ui && typeof ui.showDossier==='function'){
+      try{
+        // Per-district plaza z-coordinates (from live scene probe): approach when car passes these
+        var PLAZA_Z = { 0: -143, 1: -179, 2: -325, 3: -445, 4: -596, 5: -639 };
+        var opened = {};
+        var carObj = null;
+        S.traverse(function(o){ if(o.name==='car' && !carObj) carObj=o; });
+        if(carObj){
+          var _v = new T.Vector3();
+          var _lastCheck = 0;
+          var _tick = function(t){
+            try{
+              if(t - _lastCheck > 400){
+                _lastCheck = t;
+                carObj.getWorldPosition(_v);
+                var carZ = _v.z;
+                // Only auto-open if no dossier is already open
+                if(ui.opened === 0 && !ui.finished){
+                  for(var idx=0; idx<6; idx++){
+                    if(opened[idx]) continue;
+                    var pz = PLAZA_Z[idx];
+                    // Trigger when car passes the plaza z (allowing for car driving from +Z to -Z)
+                    if(carZ <= pz + 12 && carZ >= pz - 40){
+                      opened[idx] = true;
+                      try{ ui.showDossier(idx); }catch(_){}
+                      break;
+                    }
+                  }
+                }
+              }
+            }catch(_){}
+            requestAnimationFrame(_tick);
+          };
+          requestAnimationFrame(_tick);
+          window.__v9885_plazaWatch = { plazas: PLAZA_Z, opened: opened };
+        }
+        done.plazaWatch = true;
       }catch(e){}
     }
 
