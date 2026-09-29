@@ -7018,7 +7018,7 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 </script>
 
 <script>
-/* v9884d: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
+/* v9884e: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
 (function(){
   var ran=0, done={};
   function work(){
@@ -7067,6 +7067,17 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
         if(window.__v9884wheelEnforce) clearInterval(window.__v9884wheelEnforce);
         window.__v9884wheelEnforce=setInterval(function(){
           S.traverse(function(o){
+            // Re-tame blown-out tail-light emissives in case game restores them
+            if(o.isMesh && o.material){
+              var _mats=Array.isArray(o.material)?o.material:[o.material];
+              _mats.forEach(function(mm){
+                if(mm && mm.emissive && mm.emissiveIntensity>100){
+                  var _e=mm.emissive;
+                  if(_e.g>0.5 && _e.b>0.5 && _e.r<0.2) mm.emissiveIntensity=25;
+                  else if(_e.r>0.5 && _e.g<0.2 && _e.b<0.2) mm.emissiveIntensity=40;
+                }
+              });
+            }
             if(!o.isMesh) return;
             var mats=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
             var isHiddenMat=false;
@@ -7089,6 +7100,37 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
           });
         }, 500);
         done.wheels=true;
+      }catch(e){}
+    }
+
+    // (1d) Tame car tail-light/brake emissive blowout (teal @650, red @850 -> reasonable) and boost statue fills
+    if(!done.tailAndStatue){
+      try{
+        var tamed=0, boosted=0;
+        S.traverse(function(o){
+          if(o.isMesh && o.material){
+            var mats=Array.isArray(o.material)?o.material:[o.material];
+            mats.forEach(function(m){
+              if(!m||!m.emissive) return;
+              var e=m.emissive;
+              // Teal tail-light with insane intensity -> user sees as white blowout
+              if(m.emissiveIntensity>100 && e.g>0.5 && e.b>0.5 && e.r<0.2){
+                m.emissiveIntensity=25; tamed++;
+              }
+              // Red brake light with insane intensity
+              if(m.emissiveIntensity>100 && e.r>0.5 && e.g<0.2 && e.b<0.2){
+                m.emissiveIntensity=40; tamed++;
+              }
+            });
+          }
+          if(o.isLight){
+            if(o.name==='statue-streetlight'){ o.intensity=70; boosted++; }
+            if(o.name==='start-statue-fill'){ o.intensity=14; boosted++; }
+            if(o.name==='racer-statue-fill'){ o.intensity=14; boosted++; }
+            if(o.name==='summit-statue-fill'){ o.intensity=16; boosted++; }
+          }
+        });
+        done.tailAndStatue=true;
       }catch(e){}
     }
 
