@@ -682,6 +682,54 @@ kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:3px;border:
   setTimeout(fix, 1500);
 })();
 </script>
+<script>
+/* v9881: cap runaway envMapIntensity (bug value 1016), tighten car paint, add summit statue fill light, mild exposure raise */
+(function(){
+  var ran=0;
+  function polish(){
+    var S=window.__scene, R=window.__renderer;
+    if(!S||!R){ if(ran++<20) setTimeout(polish, 800); return; }
+    var carFixed=0, envCapped=0, statueLit=0;
+    var car=S.getObjectByName("car");
+    if(car){
+      car.traverse(function(o){
+        if(!o.isMesh) return;
+        var mats=Array.isArray(o.material)?o.material:[o.material];
+        mats.forEach(function(m){
+          if(!m) return;
+          if(m.envMapIntensity!=null && m.envMapIntensity > 5){ m.envMapIntensity = 1.4; envCapped++; }
+          if(m.metalness!=null && m.metalness > .9 && m.roughness!=null && m.roughness < .06){
+            m.roughness = 0.18; carFixed++;
+          }
+          if(m.clearcoat!=null && m.clearcoat > .5 && m.clearcoatRoughness!=null && m.clearcoatRoughness < .05){
+            m.clearcoatRoughness = 0.12;
+          }
+        });
+      });
+    }
+    var summit=S.getObjectByName("summit");
+    if(summit && !summit.userData.__polishFill){
+      var suit = summit.getObjectByName("suit-figure") || summit.getObjectByName("statue");
+      if(suit){
+        var T=window.THREE;
+        var pos=suit.getWorldPosition(new T.Vector3());
+        var fill=new T.SpotLight(0xffe4c4, 6, 45, Math.PI/6, 0.55, 1.6);
+        fill.position.set(pos.x+5, pos.y+14, pos.z+5);
+        fill.target.position.set(pos.x, pos.y+3, pos.z);
+        fill.name="polish-statue-fill";
+        S.add(fill); S.add(fill.target);
+        summit.userData.__polishFill=true;
+        statueLit++;
+      }
+    }
+    if(R.toneMappingExposure < 0.62){ R.toneMappingExposure = 0.62; }
+    if(ran===0){ try{console.log("[career-drive] v9881: envCap="+envCapped+" carFix="+carFixed+" statueLit="+statueLit);}catch(e){} }
+    ran++;
+    if(ran<8) setTimeout(polish, 900);
+  }
+  setTimeout(polish, 2500);
+})();
+</script>
 <canvas id="scene"></canvas>
 <noscript><div class="nowebgl"><b>Career Drive needs JavaScript.</b><br>Enable it, or email kentavienwillis@gmail.com for a PDF résumé.</div></noscript>
 <div id="nogl" class="nowebgl hidden"><b>This browser can't run WebGL.</b><br>Try Chrome, Edge or Firefox on a desktop — or email <a href="mailto:kentavienwillis@gmail.com">kentavienwillis@gmail.com</a>.</div>
@@ -6906,4 +6954,4 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 
 </script>
 </body>
-</html><!--v9880-wheel-fix-->
+</html><!--v9881-polish-->
