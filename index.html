@@ -730,6 +730,69 @@ kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:3px;border:
   setTimeout(polish, 2500);
 })();
 </script>
+<script>
+/* v9883: statue fill lights + tame white windows + ground shadow + warm emissive */
+(function(){
+  var ran=0;
+  function polish(){
+    var S=window.__scene, R=window.__renderer, T=window.THREE;
+    if(!S||!R||!T){ if(ran++<20) setTimeout(polish, 800); return; }
+    var whiteTamed=0, statuesLit=0, emissiveWarmed=0;
+    if(!S.userData.__v9883_statues){
+      var statues=[
+        {x:16.8, y:0, z:-46.4, name:"start-statue-fill", intensity:8, dist:35},
+        {x:33.5, y:0, z:-98.5, name:"racer-statue-fill", intensity:8, dist:35},
+        {x:212.7, y:0, z:-752.5, name:"summit-statue-fill", intensity:10, dist:50}
+      ];
+      statues.forEach(function(p){
+        var fill=new T.SpotLight(0xffe4c4, p.intensity, p.dist, Math.PI/6, 0.5, 1.6);
+        fill.position.set(p.x+4, p.y+18, p.z+4);
+        fill.target.position.set(p.x, p.y+3, p.z);
+        fill.castShadow=false; fill.name=p.name;
+        S.add(fill); S.add(fill.target);
+        statuesLit++;
+      });
+      S.userData.__v9883_statues=true;
+    }
+    S.traverse(function(o){
+      if(!o.isMesh||!o.visible||!o.material) return;
+      var mats=Array.isArray(o.material)?o.material:[o.material];
+      mats.forEach(function(m){
+        if(!m || m.userData.__v9883_tamed) return;
+        if(m.type==="MeshBasicMaterial" && m.color && m.color.r>.95 && m.color.g>.95 && m.color.b>.95){
+          var nm=o.name||"";
+          if(nm.indexOf("streetlight")>=0||nm.indexOf("lamp")>=0||nm.indexOf("cert")>=0||nm.indexOf("badge")>=0) return;
+          m.color.setRGB(0.85, 0.78, 0.62);
+          m.userData.__v9883_tamed=true;
+          whiteTamed++;
+        }
+        if(m.emissive && m.emissiveIntensity>500 && m.emissive.g>0.6 && !m.userData.__v9883_warmed){
+          m.emissive.setRGB(0.08, 0.62, 0.55);
+          m.emissiveIntensity=650;
+          m.userData.__v9883_warmed=true;
+          emissiveWarmed++;
+        }
+      });
+    });
+    var car=S.getObjectByName("car");
+    if(car && !car.userData.__v9883_shadow){
+      var shadow=new T.Mesh(
+        new T.CircleGeometry(2.4, 24),
+        new T.MeshBasicMaterial({color:0x000000, transparent:true, opacity:0.55, depthWrite:false})
+      );
+      shadow.rotation.x = -Math.PI/2;
+      shadow.position.y = 0.02;
+      shadow.name="car-ground-shadow";
+      car.add(shadow);
+      car.userData.__v9883_shadow=true;
+    }
+    if(ran===0){ try{console.log("[career-drive] v9883: statuesLit="+statuesLit+" whiteTamed="+whiteTamed+" emissiveWarmed="+emissiveWarmed);}catch(e){} }
+    ran++;
+    if(ran<10) setTimeout(polish, 900);
+  }
+  setTimeout(polish, 2500);
+})();
+</script>
 <canvas id="scene"></canvas>
 <noscript><div class="nowebgl"><b>Career Drive needs JavaScript.</b><br>Enable it, or email kentavienwillis@gmail.com for a PDF résumé.</div></noscript>
 <div id="nogl" class="nowebgl hidden"><b>This browser can't run WebGL.</b><br>Try Chrome, Edge or Firefox on a desktop — or email <a href="mailto:kentavienwillis@gmail.com">kentavienwillis@gmail.com</a>.</div>
@@ -6954,4 +7017,4 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 
 </script>
 </body>
-</html><!--v9882-polish-tuned-->
+</html><!--v9883-full-polish-->
