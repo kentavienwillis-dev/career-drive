@@ -698,7 +698,7 @@ kbd{display:inline-block;min-width:20px;padding:2px 6px;margin-right:3px;border:
         mats.forEach(function(m){
           if(!m) return;
           if(m.envMapIntensity!=null && m.envMapIntensity > 5){ m.envMapIntensity = 1.4; envCapped++; }
-          if(m.metalness!=null && m.metalness > .9 && m.roughness!=null && m.roughness < .06){
+          if(m.metalness!=null && m.metalness > .9 && m.roughness!=null && m.roughness < .12){
             m.roughness = 0.18; carFixed++;
           }
           if(m.clearcoat!=null && m.clearcoat > .5 && m.clearcoatRoughness!=null && m.clearcoatRoughness < .05){
@@ -6954,4 +6954,4 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 
 </script>
 </body>
-</html><!--v9881-polish-->
+</html><!--v9882-polish-tuned-->
