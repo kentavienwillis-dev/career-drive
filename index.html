@@ -6893,6 +6893,8 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
           if(m.type==="MeshBasicMaterial")return;
           if(m.color&&m.color.r>.85&&m.color.g>.85&&m.color.b>.85&&m.metalness!=null&&m.metalness>.6){
             m.color.setRGB(.05,.06,.09);                                   // kill stray white metal parts
+          } else if(m.color&&m.metalness!=null&&m.metalness>.6&&(m.color.r+m.color.g+m.color.b)/3>.5){
+            m.color.setRGB(.30,.33,.38); m.roughness=Math.max(m.roughness||0,.3);   // bright chrome rims -> clean gunmetal
           }
           // satin the metallic paint: mirror (roughness<.12) shatters on iOS -> raise to ~.22, keeps deep navy metallic
           if(m.metalness!=null&&m.metalness>.55&&m.roughness!=null&&m.roughness<.2){
@@ -6959,4 +6961,4 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 })();
 </script>
 </body>
-</html><!--v9872-cleanup-->
+</html><!--v9873-rims-->
