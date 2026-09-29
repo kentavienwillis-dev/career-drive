@@ -7018,7 +7018,7 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 </script>
 
 <script>
-/* v9884c: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
+/* v9884d: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
 (function(){
   var ran=0, done={};
   function work(){
@@ -7089,6 +7089,19 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
           });
         }, 500);
         done.wheels=true;
+      }catch(e){}
+    }
+
+    // (1c) Kill any visible SpotLight/PointLight with intensity<=0 — they cost shader eval for zero photons
+    if(!done.dimLights){
+      try{
+        var killed=0;
+        S.traverse(function(o){
+          if(o.isLight && o.visible && (o.type==='SpotLight' || o.type==='PointLight')){
+            if(o.intensity<=0.001){ o.visible=false; killed++; }
+          }
+        });
+        done.dimLights=true;
       }catch(e){}
     }
 
