@@ -7018,7 +7018,7 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 </script>
 
 <script>
-/* v9884b: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
+/* v9884c: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
 (function(){
   var ran=0, done={};
   function work(){
@@ -7063,11 +7063,29 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
             o.visible=false;
           }
         });
-        // enforce every 500ms in case game logic re-shows them
+        // enforce every 500ms: hide + blacken + tag any Wheel_* / wheelOriginalHidden that appears later
         if(window.__v9884wheelEnforce) clearInterval(window.__v9884wheelEnforce);
         window.__v9884wheelEnforce=setInterval(function(){
           S.traverse(function(o){
-            if(o.isMesh && o.userData && o.userData.__userHid && o.visible){ o.visible=false; }
+            if(!o.isMesh) return;
+            var mats=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
+            var isHiddenMat=false;
+            mats.forEach(function(m){
+              if(m && m.name && /wheelOriginalHidden|hiddenWheel/i.test(m.name)){
+                isHiddenMat=true;
+                if(m.color && (m.color.r>0.05 || m.color.g>0.05 || m.color.b>0.05)){
+                  m.color.setRGB(0,0,0);
+                  if(m.emissive) m.emissive.setRGB(0,0,0);
+                  m.transparent=true; m.opacity=0; m.depthWrite=false;
+                  m.needsUpdate=true;
+                }
+              }
+            });
+            if(isHiddenMat || (o.name && /^Wheel_(FL|FR|RL|RR)$/i.test(o.name))){
+              if(!o.userData) o.userData={};
+              o.userData.__userHid=true;
+              if(o.visible) o.visible=false;
+            }
           });
         }, 500);
         done.wheels=true;
