@@ -7042,6 +7042,38 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
       }catch(e){}
     }
 
+    // (1b) Bulletproof white wheel fix: hide + blacken + mark __userHid on all Wheel_FL/FR/RL/RR and any wheelOriginalHidden material
+    if(!done.wheels){
+      try{
+        S.traverse(function(o){
+          if(!o.isMesh || !o.material) return;
+          var mats=Array.isArray(o.material)?o.material:[o.material];
+          var isHiddenMat=false;
+          mats.forEach(function(m){
+            if(m && m.name && /wheelOriginalHidden|hiddenWheel|original/i.test(m.name)){
+              isHiddenMat=true;
+              if(m.color) m.color.setRGB(0,0,0);
+              if(m.emissive) m.emissive.setRGB(0,0,0);
+              m.transparent=true; m.opacity=0; m.depthWrite=false; m.needsUpdate=true;
+            }
+          });
+          if(isHiddenMat || (o.name && /^Wheel_(FL|FR|RL|RR)$/i.test(o.name))){
+            if(!o.userData) o.userData={};
+            o.userData.__userHid=true;
+            o.visible=false;
+          }
+        });
+        // enforce every 500ms in case game logic re-shows them
+        if(window.__v9884wheelEnforce) clearInterval(window.__v9884wheelEnforce);
+        window.__v9884wheelEnforce=setInterval(function(){
+          S.traverse(function(o){
+            if(o.isMesh && o.userData && o.userData.__userHid && o.visible){ o.visible=false; }
+          });
+        }, 500);
+        done.wheels=true;
+      }catch(e){}
+    }
+
     // (2) Tame remaining washed-out MeshBasic whites and near-white emissives
     if(!done.wash){
       try{
