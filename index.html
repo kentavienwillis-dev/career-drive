@@ -7018,7 +7018,7 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
 </script>
 
 <script>
-/* v9884: better ending (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
+/* v9884b: better ending (culling removed after breaking FCB) (tunnel exit + fade), remove empty gantries, distant culling, tame washed-out */
 (function(){
   var ran=0, done={};
   function work(){
@@ -7113,46 +7113,18 @@ fps `+(y.fps||0)+"  rung "+(y.rung||0)+"  scale "+(y.scale||1)+"  lod "+(D.lodK=
       }catch(e){}
     }
 
-    // (4) Distance culling for perf: far objects invisible when >650u from camera
-    if(!done.cull){
+    // (4) Distance culling REMOVED v9884b - caused FCB (chapter 5) district to be culled because
+    // scene cameras' getWorldPosition() returns (0,0,0) with matrix-transformed camera setups.
+
+    // (4b) Safety: restore any meshes that had been culled by earlier v9884 versions
+    if(!done.uncull){
       try{
-        var cam=null;
-        S.traverse(function(o){ if(o.isCamera && !cam) cam=o; });
-        if(cam){
-          var _v=new T.Vector3(), _cp=new T.Vector3();
-          var _cull=function(){
-            try{
-              // Refresh: game may use a different active camera per frame; use whichever has non-origin world pos
-              var actCam=cam;
-              S.traverse(function(o){
-                if(o.isCamera){
-                  var wp=o.getWorldPosition(new T.Vector3());
-                  if(wp.lengthSq()>0.01){ actCam=o; }
-                }
-              });
-              actCam.getWorldPosition(_cp);
-              S.traverse(function(o){
-                if(!o.isMesh)return;
-                if(!o.userData)o.userData={};
-                if(o.userData.__userHid)return;
-                o.getWorldPosition(_v);
-                var d=_v.distanceTo(_cp);
-                if(d>720){
-                  if(o.visible){ o.visible=false; o.userData.__cullHidden=true; }
-                }else if(o.userData.__cullHidden){
-                  o.visible=true; o.userData.__cullHidden=false;
-                }
-              });
-            }catch(_){}
-          };
-          var last=0;
-          var _tick=function(t){
-            if(t-last>300){ _cull(); last=t; }
-            requestAnimationFrame(_tick);
-          };
-          requestAnimationFrame(_tick);
-        }
-        done.cull=true;
+        S.traverse(function(o){
+          if(o.isMesh && o.userData && o.userData.__cullHidden){
+            o.visible=true; o.userData.__cullHidden=false;
+          }
+        });
+        done.uncull=true;
       }catch(e){}
     }
 
