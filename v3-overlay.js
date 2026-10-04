@@ -383,13 +383,19 @@
                 const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
                 const absX = Math.abs(ox);
                 if(absX <= BLEND_IN) continue;
-                const w = Math.min(1, (absX - BLEND_IN) / (BLEND_OUT - BLEND_IN));
+                // Smoothstep weight for natural skin falloff
+                const t = Math.min(1, Math.max(0, (absX - BLEND_IN) / (BLEND_OUT - BLEND_IN)));
+                const w = t * t * (3 - 2 * t);  // smoothstep
                 const side = ox > 0 ? 1 : -1;
                 const px = side * SHOULDER_X, py = SHOULDER_Y;
                 const rx = ox - px, ry = oy - py;
                 const a = w * side * ARM_ANGLE;
                 const sa = Math.sin(a), ca = Math.cos(a);
-                pos.setXYZ(i, px + rx*ca - ry*sa, py + rx*sa + ry*ca, oz);
+                let nx = px + rx*ca - ry*sa, ny = py + rx*sa + ry*ca;
+                // Pull arm slightly inward toward body for natural rest
+                const pullIn = w * side * 0.0003;
+                nx -= pullIn;
+                pos.setXYZ(i, nx, ny, oz);
               }
               pos.needsUpdate = true;
               o.geometry.computeVertexNormals();
