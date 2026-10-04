@@ -363,7 +363,7 @@
           // Measure & auto-scale so figure stands ~10 units tall
           const bbox = new T.Box3().setFromObject(root);
           const size = new T.Vector3(); bbox.getSize(size);
-          const targetH = 5.5;
+          const targetH = 6.0;
           const scale = size.y > 0.01 ? (targetH / size.y) : 1;
           root.scale.setScalar(scale);
           // Recompute to find how far below origin his feet sit; lift so feet at y=0
@@ -416,10 +416,10 @@
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            const key = new T.SpotLight(0xfff0d6, 120, 60, Math.PI/4, 0.5, 1.1);
+            const key = new T.SpotLight(0xfff0d6, 150, 60, Math.PI/4, 0.5, 1.1);
             key.position.set(24, 10, 14); key.target.position.set(16, 3, 6);
             fillGrp.add(key); fillGrp.add(key.target);
-            const rim = new T.SpotLight(0x4df0e0, 65, 50, Math.PI/4, 0.5, 1.2);
+            const rim = new T.SpotLight(0x4df0e0, 80, 50, Math.PI/4, 0.5, 1.2);
             rim.position.set(8, 9, -4); rim.target.position.set(16, 3, 6);
             fillGrp.add(rim); fillGrp.add(rim.target);
             const amb = new T.PointLight(0xffe6b0, 28, 24, 2);
