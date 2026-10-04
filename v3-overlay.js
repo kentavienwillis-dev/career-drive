@@ -365,7 +365,7 @@
       // Clone and place at the start
       const clone = orig.clone(true);
       clone.name = 'v3-start-statue';
-      clone.position.set(14, 0, 10);
+      clone.position.set(26, 0, 15);
       clone.rotation.y = Math.PI * 0.9;
       clone.scale.setScalar(15); // original is scale 21; shrink a bit to fit the start
       clone.traverse(m => {
@@ -387,11 +387,11 @@
       const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
       const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
       const plinth = new T.Mesh(new T.CylinderGeometry(3.0, 3.2, 0.7, 24), plinthMat);
-      plinth.position.set(14, -0.35, 10);
+      plinth.position.set(26, -0.35, 15);
       plinth.name = 'v3-start-plinth';
       sc.add(plinth);
       const glow = new T.Mesh(new T.TorusGeometry(2.9, 0.14, 10, 48), glowMat);
-      glow.position.set(14, 0.05, 10);
+      glow.position.set(26, 0.05, 15);
       glow.rotation.x = Math.PI/2;
       glow.name = 'v3-start-glow';
       sc.add(glow);
@@ -401,13 +401,13 @@
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
         const key = new T.SpotLight(0xfff0d6, 95, 70, Math.PI/4, 0.5, 1.1);
-        key.position.set(24, 24, 20); key.target.position.set(14, 9, 10);
+        key.position.set(36, 24, 25); key.target.position.set(26, 9, 15);
         fillGrp.add(key); fillGrp.add(key.target);
         const rim = new T.SpotLight(0x4df0e0, 55, 60, Math.PI/4, 0.5, 1.2);
-        rim.position.set(2, 22, 0); rim.target.position.set(14, 9, 10);
+        rim.position.set(14, 22, 5); rim.target.position.set(26, 9, 15);
         fillGrp.add(rim); fillGrp.add(rim.target);
         const amb = new T.PointLight(0xffe6b0, 22, 32, 2);
-        amb.position.set(14, 2, 10);
+        amb.position.set(26, 2, 15);
         fillGrp.add(amb);
         sc.add(fillGrp);
       }
