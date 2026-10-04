@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v15.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v16.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -372,8 +372,8 @@
               // SELF-ILLUMINATE from baseColor: scene teal/pink lights can't tint the figure
               m.emissiveMap = m.map;
               if(m.emissive) m.emissive.setHex(0xffffff);
-              m.emissiveIntensity = 1.0;
-              if(m.color) m.color.setHex(0x000000);  // kill diffuse so only emissive renders
+              m.emissiveIntensity = 0.3;
+              if(m.color) m.color.setHex(0xffffff);
               m.envMap = null;
               m.envMapIntensity = 0;
               m.toneMapped = false;   // bypass scene tone mapping (which can tint)
