@@ -548,10 +548,14 @@
             const rim = new T.PointLight(0xeef4ff, 500, 16, 1.1);
             rim.position.set(16, 10, 2);
             fillGrp.add(rim);
-            // FRONT — direct front-fill so chest/face always read bright at splash angle
-            const front = new T.PointLight(0xfff6e6, 600, 14, 1.0);
-            front.position.set(16, 6, 11);
+            // FRONT — direct front-fill aimed at chest/body (not face) to avoid blow-out
+            const front = new T.PointLight(0xfff6e6, 420, 14, 1.1);
+            front.position.set(16, 4.5, 11);
             fillGrp.add(front);
+            // BODY — low front-right throws light onto suit/legs so the gray reads gray
+            const body = new T.PointLight(0xffeedc, 350, 12, 1.2);
+            body.position.set(18, 3.5, 10);
+            fillGrp.add(body);
             // LOCAL HEMI — bright uniform ambient so shadow sides read
             const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 3.2);
             hemi.position.set(16, 10, 6);
