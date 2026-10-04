@@ -332,173 +332,67 @@
       const T = window.THREE, sc = window.__scene;
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
+      if(window.__v3StatueLoading) return false;
+      if(!T.GLTFLoader){ /* loader not ready yet */ return false; }
 
-      // Hand-built race-driver statue (v3n+): closed fists, visible face,
-      // professional stance, scaled to fit the chase-cam frame.
-      const root = new T.Group();
-      root.name = 'v3-start-statue';
+      window.__v3StatueLoading = true;
+      const loader = new T.GLTFLoader();
+      loader.load('dreads.glb?v=1', gltf => {
+        try{
+          const root = gltf.scene || gltf.scenes[0];
+          root.name = 'v3-start-statue';
+          root.traverse(o => {
+            if(o.isMesh){
+              o.castShadow = true;
+              o.receiveShadow = true;
+              if(o.material){
+                const mats = Array.isArray(o.material) ? o.material : [o.material];
+                mats.forEach(m => { if(m) m.needsUpdate = true; });
+              }
+            }
+          });
+          // Measure & auto-scale so figure stands ~10 units tall
+          const bbox = new T.Box3().setFromObject(root);
+          const size = new T.Vector3(); bbox.getSize(size);
+          const targetH = 10;
+          const scale = size.y > 0.01 ? (targetH / size.y) : 1;
+          root.scale.setScalar(scale);
+          // Recompute to find how far below origin his feet sit; lift so feet at y=0
+          const bbox2 = new T.Box3().setFromObject(root);
+          const yOffset = -bbox2.min.y;
+          root.position.set(14, yOffset, 10);
+          root.rotation.y = Math.PI;  // face toward +Z = toward camera (model's default face is -Z)
+          sc.add(root);
+          console.log(MARK, 'dreads.glb loaded; H=' + size.y.toFixed(1) + ' scale=' + scale.toFixed(2) + ' feetLift=' + yOffset.toFixed(2));
 
-      const mat = (hex, opts) => new T.MeshStandardMaterial(Object.assign({color: hex, roughness: 0.55, metalness: 0.15}, opts || {}));
-      const emat = (hex, intensity) => new T.MeshStandardMaterial({color: hex, roughness: 0.4, metalness: 0.2, emissive: new T.Color(hex), emissiveIntensity: intensity||0.4});
+          // Pedestal
+          const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
+          const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
+          const plinth = new T.Mesh(new T.CylinderGeometry(2.3, 2.5, 0.6, 24), plinthMat);
+          plinth.position.set(14, -0.3, 10); plinth.name = 'v3-start-plinth'; sc.add(plinth);
+          const glow = new T.Mesh(new T.TorusGeometry(2.25, 0.12, 10, 48), glowMat);
+          glow.position.set(14, 0.04, 10); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
 
-      const SKIN = 0x7a543d;
-      const RED = 0xd1283a;
-      const WHITE = 0xf2f2f0;
-      const PANTS = 0x14181e;
-      const BOOTS = 0x090b0e;
-      const TEAL = 0x4df0e0;
-
-      // Base dimensions (feet together, standing straight, head up at ~8u)
-      // Boots (together, slight offset to look like 'at attention')
-      [[-0.45,0],[0.45,0]].forEach(([x,z])=>{
-        const b = new T.Mesh(new T.BoxGeometry(0.75,0.55,1.3), mat(BOOTS,{roughness:0.3}));
-        b.position.set(x, 0.28, z+0.1); root.add(b);
+          // Fill lights
+          if(!sc.getObjectByName('v3c-statue-fill')){
+            const fillGrp = new T.Group();
+            fillGrp.name = 'v3c-statue-fill';
+            const key = new T.SpotLight(0xfff0d6, 85, 60, Math.PI/4, 0.5, 1.1);
+            key.position.set(24, 18, 20); key.target.position.set(14, 5, 10);
+            fillGrp.add(key); fillGrp.add(key.target);
+            const rim = new T.SpotLight(0x4df0e0, 50, 50, Math.PI/4, 0.5, 1.2);
+            rim.position.set(6, 16, 0); rim.target.position.set(14, 5, 10);
+            fillGrp.add(rim); fillGrp.add(rim.target);
+            const amb = new T.PointLight(0xffe6b0, 18, 24, 2);
+            amb.position.set(14, 2, 10);
+            fillGrp.add(amb);
+            sc.add(fillGrp);
+          }
+        }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
+      }, undefined, err => {
+        console.warn(MARK, 'GLB load failed:', err && err.message);
+        window.__v3StatueLoading = false;
       });
-      // Legs (slim, parallel, professional)
-      [[-0.45,0],[0.45,0]].forEach(([x,z])=>{
-        const l = new T.Mesh(new T.CylinderGeometry(0.42,0.36,3.4,16), mat(PANTS));
-        l.position.set(x, 2.3, z); root.add(l);
-        // white racing stripe outside
-        const str = new T.Mesh(new T.BoxGeometry(0.12,3.2,0.1), mat(WHITE,{roughness:0.3}));
-        str.position.set(x+(x<0?-0.4:0.4), 2.3, 0); root.add(str);
-      });
-
-      // Torso — racing jacket, zipped up
-      const waist = new T.Mesh(new T.CylinderGeometry(0.9,0.78,0.8,20), mat(RED));
-      waist.position.set(0, 4.3, 0); root.add(waist);
-      const chest = new T.Mesh(new T.CylinderGeometry(1.15,0.9,2.0,20), mat(RED));
-      chest.position.set(0, 5.7, 0); root.add(chest);
-      // White chest band (racing yoke)
-      const yoke = new T.Mesh(new T.CylinderGeometry(1.2,1.17,0.42,20), mat(WHITE,{roughness:0.3}));
-      yoke.position.set(0, 6.5, 0); root.add(yoke);
-      // Zipper
-      const zip = new T.Mesh(new T.BoxGeometry(0.09,2.6,0.05), mat(0x1a1a1a,{metalness:0.6,roughness:0.3}));
-      zip.position.set(0, 5.7, 1.12); root.add(zip);
-      // Chest number badge with racing "7"
-      const badge = new T.Mesh(new T.BoxGeometry(1.1,0.9,0.08), mat(WHITE,{roughness:0.3}));
-      badge.position.set(-0.5, 5.6, 1.08); badge.rotation.y = 0.1; root.add(badge);
-      // Clean "7" number (top bar + angled stroke)
-      const n7top = new T.Mesh(new T.BoxGeometry(0.60, 0.14, 0.04), mat(0x0a0a0a));
-      n7top.position.set(-0.55, 5.95, 1.14); n7top.rotation.y = 0.1; root.add(n7top);
-      const n7stroke = new T.Mesh(new T.BoxGeometry(0.14, 0.80, 0.04), mat(0x0a0a0a));
-      n7stroke.position.set(-0.40, 5.52, 1.14); n7stroke.rotation.y = 0.1; n7stroke.rotation.z = 0.32; root.add(n7stroke);
-      // Small crossbar on 7 (euro style)
-      const n7cross = new T.Mesh(new T.BoxGeometry(0.26, 0.07, 0.04), mat(0x0a0a0a));
-      n7cross.position.set(-0.46, 5.65, 1.14); n7cross.rotation.y = 0.1; n7cross.rotation.z = 0.32; root.add(n7cross);
-      // Helmet prop beside right foot (iconic race-driver detail)
-      const helmet = new T.Mesh(new T.SphereGeometry(0.65, 20, 16), mat(0x111418, {roughness:0.25, metalness:0.5}));
-      helmet.position.set(1.2, 0.65, 0.3); helmet.scale.set(1.0, 0.95, 1.1);
-      root.add(helmet);
-      // Teal visor stripe across helmet
-      const visor = new T.Mesh(new T.SphereGeometry(0.63, 20, 10, 0, Math.PI*2, Math.PI/3, Math.PI/3.2), emat(TEAL, 0.9));
-      visor.position.set(1.2, 0.70, 0.3); visor.scale.set(1.0, 0.95, 1.12); visor.rotation.x = 0.15;
-      root.add(visor);
-      // Red stripe over helmet top
-      const htrim = new T.Mesh(new T.TorusGeometry(0.63, 0.05, 8, 24, Math.PI), emat(RED, 0.4));
-      htrim.position.set(1.2, 0.65, 0.3); htrim.rotation.y = Math.PI/2;
-      root.add(htrim);
-
-      // Arms — straight down, slight outward angle (professional/at-attention stance)
-      // Right arm (viewer's left since statue faces camera)
-      const rUp = new T.Mesh(new T.CylinderGeometry(0.42,0.36,1.95,16), mat(RED));
-      rUp.position.set(1.38, 5.75, 0); rUp.rotation.z = 0.14; root.add(rUp);
-      const rFore = new T.Mesh(new T.CylinderGeometry(0.36,0.30,1.9,16), mat(RED));
-      rFore.position.set(1.6, 3.9, 0); rFore.rotation.z = 0.08; root.add(rFore);
-      const rCuff = new T.Mesh(new T.CylinderGeometry(0.33,0.33,0.18,16), mat(WHITE,{roughness:0.3}));
-      rCuff.position.set(1.65, 3.0, 0); root.add(rCuff);
-
-      // Left arm (mirror)
-      const lUp = new T.Mesh(new T.CylinderGeometry(0.42,0.36,1.95,16), mat(RED));
-      lUp.position.set(-1.38, 5.75, 0); lUp.rotation.z = -0.14; root.add(lUp);
-      const lFore = new T.Mesh(new T.CylinderGeometry(0.36,0.30,1.9,16), mat(RED));
-      lFore.position.set(-1.6, 3.9, 0); lFore.rotation.z = -0.08; root.add(lFore);
-      const lCuff = new T.Mesh(new T.CylinderGeometry(0.33,0.33,0.18,16), mat(WHITE,{roughness:0.3}));
-      lCuff.position.set(-1.65, 3.0, 0); root.add(lCuff);
-
-      // === FISTS (closed hands, no fingers) ===
-      // Each fist is a rounded cube — approximates a clenched hand
-      function makeFist(x, y, z){
-        const g = new T.Group();
-        // Main knuckle block
-        const k = new T.Mesh(new T.BoxGeometry(0.72, 0.8, 0.6), mat(SKIN));
-        k.position.set(0, 0, 0);
-        g.add(k);
-        // Thumb bump
-        const thumb = new T.Mesh(new T.SphereGeometry(0.14, 10, 8), mat(SKIN));
-        thumb.position.set(x < 0 ? 0.28 : -0.28, 0.08, 0.18);
-        g.add(thumb);
-        // Knuckle ridges (4 small bumps on top of fist)
-        for(let i=0; i<4; i++){
-          const r = new T.Mesh(new T.SphereGeometry(0.08, 8, 6), mat(SKIN));
-          r.position.set(-0.17 + i*0.11, 0.33, 0.18);
-          g.add(r);
-        }
-        g.position.set(x, y, z);
-        return g;
-      }
-      root.add(makeFist(1.65, 2.5, 0));   // right fist
-      root.add(makeFist(-1.65, 2.5, 0));  // left fist
-
-      // Neck + Head
-      const neck = new T.Mesh(new T.CylinderGeometry(0.3, 0.32, 0.55, 14), mat(SKIN));
-      neck.position.set(0, 7.1, 0); root.add(neck);
-      const head = new T.Mesh(new T.SphereGeometry(0.88, 24, 20), mat(SKIN));
-      head.position.set(0, 8.0, 0); head.scale.set(0.95,1.08,0.98); root.add(head);
-      // Short hair
-      const hair = new T.Mesh(new T.SphereGeometry(0.92, 20, 16, 0, Math.PI*2, 0, Math.PI/2.4), mat(0x1a1310,{roughness:0.7}));
-      hair.position.set(0, 8.05, -0.03); hair.scale.set(0.98,1.0,1.02); root.add(hair);
-      // Eyes (facing +Z so viewer sees them when statue is rotated to face camera)
-      [-0.24, 0.24].forEach(x=>{
-        const eye = new T.Mesh(new T.SphereGeometry(0.07, 10, 8), mat(0x0a0a0a));
-        eye.position.set(x, 7.95, 0.65); root.add(eye);
-      });
-      // Brow line (subtle)
-      [-0.24, 0.24].forEach(x=>{
-        const brow = new T.Mesh(new T.BoxGeometry(0.22, 0.04, 0.03), mat(0x1a1310));
-        brow.position.set(x, 8.1, 0.68); root.add(brow);
-      });
-      // Nose
-      const nose = new T.Mesh(new T.ConeGeometry(0.08, 0.22, 8), mat(SKIN));
-      nose.position.set(0, 7.85, 0.72); nose.rotation.x = Math.PI/2; root.add(nose);
-      // Mouth (subtle)
-      const mouth = new T.Mesh(new T.BoxGeometry(0.22, 0.04, 0.03), mat(0x3a2420));
-      mouth.position.set(0, 7.6, 0.7); root.add(mouth);
-
-      // Pedestal
-      const plinth = new T.Mesh(new T.CylinderGeometry(1.9, 2.1, 0.5, 24), mat(0x2c3038,{roughness:0.9,metalness:0.05}));
-      plinth.position.set(0, -0.25, 0); root.add(plinth);
-      const glow = new T.Mesh(new T.TorusGeometry(1.85, 0.08, 10, 48), emat(TEAL, 1.2));
-      glow.position.set(0, 0.03, 0); glow.rotation.x = Math.PI/2; root.add(glow);
-
-      root.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; }});
-
-      // POSITION, SCALE, ROTATION
-      // Rotation: statue naturally faces +Z (face toward +Z). Set rotation.y so the
-      // face points toward the camera at the start (camera is at +Z looking -Z).
-      root.position.set(12, 0, 0);
-      root.scale.setScalar(0.75);  // model is already drawn at human scale (~8u tall)
-      root.rotation.y = Math.PI;  // face toward -Z = TOWARD camera at +Z? no: default +Z face, Math.PI flips to -Z. We want +Z, so 0.
-      // Actually: default face dir is +Z. We want face to look toward camera at +Z.
-      // That means the statue stands with face pointing +Z — so rotation.y = 0.
-      root.rotation.y = -Math.PI/8;  // face slightly toward camera (which is at -X relative to statue)
-      sc.add(root);
-      console.log(MARK, 'race-driver statue (fists, facing camera) built at', root.position.toArray());
-
-      // Fill lights, aimed at new center (16, 4, 10)
-      if(!sc.getObjectByName('v3c-statue-fill')){
-        const fillGrp = new T.Group();
-        fillGrp.name = 'v3c-statue-fill';
-        const key = new T.SpotLight(0xfff0d6, 60, 50, Math.PI/4, 0.5, 1.1);
-        key.position.set(20, 14, 10); key.target.position.set(12, 4, 0);
-        fillGrp.add(key); fillGrp.add(key.target);
-        const rim = new T.SpotLight(0x4df0e0, 32, 40, Math.PI/4, 0.5, 1.2);
-        rim.position.set(4, 13, -8); rim.target.position.set(12, 4, 0);
-        fillGrp.add(rim); fillGrp.add(rim.target);
-        const amb = new T.PointLight(0xffe6b0, 12, 20, 2);
-        amb.position.set(12, 2, 0);
-        fillGrp.add(amb);
-        sc.add(fillGrp);
-      }
       return true;
     }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
   }
