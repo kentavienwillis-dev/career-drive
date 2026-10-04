@@ -344,7 +344,7 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('racer.glb?v=1', gltf => {
+      loader.load('marquis.glb?v=1', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -366,7 +366,8 @@
               });
             }
           });
-          // Vertex-level arm rig: swing arms down from Meshy T-pose
+          // ARM RIG DISABLED - marquis.glb has a confident pose (not T-pose)
+          if(false) { // --- disabled arm rig below ---
           root.traverse(o => {
             if(!o.isMesh) return;
             const pos = o.geometry.attributes.position;
@@ -390,6 +391,7 @@
             o.geometry.computeVertexNormals();
           });
 
+          } // --- end disabled arm rig ---
           // Auto-scale to ~6u tall and plant at the statue spot
           const bbox = new T.Box3().setFromObject(root);
           const size = new T.Vector3(); bbox.getSize(size);
