@@ -553,28 +553,29 @@
             hemi.position.set(16, 10, 6);
             fillGrp.add(hemi);
             sc.add(fillGrp);
-            // Dim nearby colored scene PointLights that fall within our statue's zone
-            // so they don't bleed teal/pink/blue tint onto the suit.
+            // LAYER ISOLATION: statue + its studio rig go on layer 2 so NO scene light
+            // (SpotLights at 1500 intensity, colored city lights) can touch the figure.
+            // Only this fillGrp's lights illuminate layer-2 objects. Cameras enable layer 2
+            // so the statue still renders.
             try {
-              const dimRange = 32;
-              const target = new T.Vector3(16, 5, 6);
-              sc.traverse(obj => {
-                if(!obj.isLight) return;
-                if(obj.parent && obj.parent.name === 'v3c-statue-fill') return;
-                if(obj.type !== 'PointLight' && obj.type !== 'SpotLight') return;
-                if(!obj.color || obj.intensity < 100) return;
-                const d = obj.position.distanceTo(target);
-                if(d > dimRange) return;
-                // if the light's color is highly saturated (teal/pink/blue), dim it near us
-                const c = obj.color;
-                const mx = Math.max(c.r, c.g, c.b), mn = Math.min(c.r, c.g, c.b);
-                const sat = mx - mn;
-                if(sat > 0.35) {
-                  obj.userData.v3OrigIntensity = obj.intensity;
-                  obj.intensity *= 0.10;  // aggressive dim: scene colored lights near statue
-                }
+              const STATUE_LAYER = 2;
+              root.traverse(o => { try { o.layers.set(STATUE_LAYER); } catch(_) {} });
+              fillGrp.traverse(o => { try { o.layers.set(STATUE_LAYER); } catch(_) {} });
+              sc.traverse(o => { if(o.isCamera){ try { o.layers.enable(STATUE_LAYER); } catch(_) {} } });
+              if(!window.__v3LayerPatched){
+                window.__v3LayerPatched = true;
+                const origAdd = T.Object3D.prototype.add;
+                T.Object3D.prototype.add = function(obj){
+                  const r = origAdd.apply(this, arguments);
+                  if(obj && obj.isCamera){ try { obj.layers.enable(STATUE_LAYER); } catch(_){} }
+                  return r;
+                };
+              }
+              ['__camera','__mainCamera','__activeCamera'].forEach(k=>{
+                const c = window[k]; if(c && c.isCamera){ try { c.layers.enable(STATUE_LAYER); } catch(_){} }
               });
-            } catch(e) { console.warn(MARK, 'light tamer:', e.message); }
+              console.log(MARK, 'layer isolation applied: statue on layer', STATUE_LAYER);
+            } catch(e) { console.warn(MARK, 'layer isolation:', e.message); }
           }
         }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
       }, undefined, err => {
