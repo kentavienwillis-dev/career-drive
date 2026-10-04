@@ -350,12 +350,34 @@
       statue0.g.userData.__v3cRepositioned = true;
       console.log(MARK, 'statue-0 repositioned to', target.toArray(), 'from', cur.toArray());
 
-      // Boost nearby fill lights
+      // Boost any existing fill lights
       sc.traverse(o => {
         if(o && o.isLight && o.name && /start-statue-fill|statue-streetlight/i.test(o.name)){
           o.intensity = Math.max(o.intensity, 24);
         }
       });
+      // Spawn two custom fill spotlights to actually illuminate the figure.
+      // Statue size ~25u, standing at (18, 0..26, 0). Two spots: one front, one key side.
+      if(!sc.getObjectByName('v3c-statue-fill')){
+        const fillGrp = new T.Group();
+        fillGrp.name = 'v3c-statue-fill';
+        // Key (warm, front-right of statue)
+        const key = new T.SpotLight(0xfff0d6, 40, 60, Math.PI/5, 0.5, 1.2);
+        key.position.set(28, 22, 10);
+        key.target.position.set(18, 12, 0);
+        fillGrp.add(key); fillGrp.add(key.target);
+        // Rim (cool teal, from behind-left)
+        const rim = new T.SpotLight(0x4df0e0, 24, 50, Math.PI/4.5, 0.6, 1.3);
+        rim.position.set(6, 20, -8);
+        rim.target.position.set(18, 12, 0);
+        fillGrp.add(rim); fillGrp.add(rim.target);
+        // Soft ground ambient blob (point light, falls off fast)
+        const amb = new T.PointLight(0xffe6b0, 8, 24, 2);
+        amb.position.set(18, 2, 0);
+        fillGrp.add(amb);
+        sc.add(fillGrp);
+        console.log(MARK, 'statue fill lights spawned (3 lights)');
+      }
       return true;
     }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
   }
@@ -388,5 +410,5 @@
   }, 500);
 
   requestAnimationFrame(tickHud);
-  console.log(MARK, 'v3c overlay bootstrapped');
+  console.log(MARK, 'v3d overlay bootstrapped');
 })();
