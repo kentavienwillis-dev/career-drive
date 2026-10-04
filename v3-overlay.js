@@ -353,34 +353,21 @@
           // (baseColor + metallicRoughness + normal maps) instead of rebuilding it.
           // Only correct color space, kill unwanted emissive, pick up scene envMap,
           // and apply a subtle warm tonal lift so the texture reads richer.
-          const envMap = window.__scene && window.__scene.environment;
+          // UNLIT material: convert every mesh to MeshBasicMaterial so NO scene
+          // lighting, NO env reflections, NO fog color can ever tint the model.
+          // The (desaturated grayscale) baseColor map is the ONLY source of color.
           root.traverse(o => {
             if(!o.isMesh) return;
-            o.castShadow = true;
-            o.receiveShadow = true;
-            o.frustumCulled = false; // keep visible at splash camera angles
-            const mats = Array.isArray(o.material) ? o.material : [o.material];
-            mats.forEach(m => {
-              if(!m) return;
-              // sRGB only on the color (albedo) map — never on data maps
-              if(m.map){
-                m.map.colorSpace = T.SRGBColorSpace;
-                m.map.anisotropy = 16;
-                m.map.needsUpdate = true;
-              }
-              if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
-              if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
-              if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
-              // SELF-ILLUMINATE from the baseColor so colored scene lights / env can't tint the suit.
-              m.emissiveMap = m.map;
-              if(m.emissive) m.emissive.setHex(0xffffff);
-              m.emissiveIntensity = 0.78;
-              if(m.color){ m.color.setHex(0xffffff); }
-              m.envMap = null;
-              m.envMapIntensity = 0;
-              m.toneMapped = true;
-              m.side = T.FrontSide;
-              m.needsUpdate = true;
+            o.castShadow = false;    // unlit material doesn't need shadow casting
+            o.receiveShadow = false;
+            o.frustumCulled = false;
+            const origMap = Array.isArray(o.material) ? o.material[0]?.map : o.material?.map;
+            if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.anisotropy = 16; origMap.needsUpdate = true; }
+            o.material = new T.MeshBasicMaterial({
+              map: origMap,
+              color: 0xffffff,
+              toneMapped: false,
+              side: T.FrontSide
             });
           });
           // ARM RIG DISABLED - marquis.glb has a confident pose (not T-pose)
