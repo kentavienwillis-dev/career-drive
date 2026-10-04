@@ -332,167 +332,92 @@
       const T = window.THREE, sc = window.__scene;
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
-      if(window.__v3StatueLoading) return false;
-      // Lazy-load GLTFLoader if it isn't attached yet (script loaded before window.THREE existed)
-      if(!T.GLTFLoader){
-        if(window.__v3GLTFLoaderLoading) return false;
-        window.__v3GLTFLoaderLoading = true;
-        const sc0 = document.createElement('script');
-        sc0.src = 'GLTFLoader.js?v=2';
-        sc0.onload = () => { console.log(MARK, 'GLTFLoader re-attached:', !!T.GLTFLoader); };
-        document.head.appendChild(sc0);
-        return false;
-      }
 
-      window.__v3StatueLoading = true;
-      const loader = new T.GLTFLoader();
-      loader.load('hero.glb?v=1', gltf => {
-        try{
-          const root = gltf.scene || gltf.scenes[0];
-          root.name = 'v3-start-statue';
-
-          // Play Mixamo idle animation at frame 0 to get the proper rigged pose
-          if(gltf.animations && gltf.animations.length){
-            const mixer = new T.AnimationMixer(root);
-            const action = mixer.clipAction(gltf.animations[0]);
-            action.play();
-            mixer.update(0);  // force frame 0 pose
-            root.userData.__v3Mixer = mixer;
-            console.log(MARK, 'applied Mixamo idle pose');
+      // Find the race-driver mannequin that already lives in the scene
+      // (14 children, elevated, with pink/purple accents from its original materials).
+      // World pos approx (129, 6, -74).
+      let orig = null;
+      sc.traverse(o => {
+        if(orig) return;
+        if(o.type === 'Group' && o.children && o.children.length === 14){
+          const wp = new T.Vector3(); o.getWorldPosition(wp);
+          if(Math.abs(wp.x - 129) < 4 && wp.y > 3 && wp.y < 15 && Math.abs(wp.z + 74) < 6){
+            orig = o;
           }
-
-          // Vertex-color by region to match the SUPER RACING photo (model has no UVs)
-          root.updateMatrixWorld(true);
-          root.traverse(o => {
-            if(!o.isMesh || !o.geometry.attributes.position) return;
-            const pos = o.geometry.attributes.position;
-            // Measure world Y range to find body regions
-            const T2 = T;
-            const bbox = new T2.Box3().setFromObject(o);
-            const yMin = bbox.min.y, yMax = bbox.max.y, h = yMax - yMin;
-            // Build world-space Y for each vertex to color correctly after rigging
-            const wPos = new T2.Vector3();
-            const matWorld = o.matrixWorld;
-            const colors = new Float32Array(pos.count * 3);
-            const SKIN = new T2.Color(0x6b4a35);
-            const HAIR = new T2.Color(0x1a1310);
-            const JACKET_BLACK = new T2.Color(0x0a0a0c);
-            const WHITE_BAND = new T2.Color(0xeaeaea);
-            const PANTS = new T2.Color(0x08080a);
-            const SHOES = new T2.Color(0x000000);
-            const SHOE_GOLD = new T2.Color(0xc49a3a);
-            for(let i = 0; i < pos.count; i++){
-              wPos.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(matWorld);
-              const t = (wPos.y - yMin) / h;  // 0 at feet, 1 at head top
-              let c;
-              // Human proportions reference (fraction of total height from feet):
-              //  feet 0 -> ankle 0.05 -> knee 0.28 -> hip 0.52 -> chest 0.72 -> shoulder 0.80 -> chin 0.86 -> brow 0.92 -> crown 1.0
-              if(t > 0.92){ c = HAIR; }
-              else if(t > 0.84){ c = SKIN; }           // face only
-              else if(t > 0.80){ c = JACKET_BLACK; }   // collar/neck line (dark)
-              else if(t > 0.52){
-                // Jacket region (shoulder to hip): black with white band across chest
-                c = (t > 0.68 && t < 0.74) ? WHITE_BAND : JACKET_BLACK;
-              }
-              else if(t > 0.06){ c = PANTS; }          // pants
-              else { c = SHOES; }                       // shoes
-              colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
-            }
-            o.geometry.setAttribute('color', new T2.BufferAttribute(colors, 3));
-            o.material = new T2.MeshStandardMaterial({
-              vertexColors: true,
-              color: 0xffffff,
-              roughness: 0.55,
-              metalness: 0.1,
-              skinning: !!o.isSkinnedMesh
-            });
-          });
-          // Just set shadows - don't rebuild material (we did it with vertex colors above)
-          root.traverse(o => {
-            if(o.isMesh){
-              o.castShadow = true;
-              o.receiveShadow = true;
-            }
-          });
-          // Measure & auto-scale so figure stands ~10 units tall
-          const bbox = new T.Box3().setFromObject(root);
-          const size = new T.Vector3(); bbox.getSize(size);
-          const targetH = 6.0;
-          const scale = size.y > 0.01 ? (targetH / size.y) : 1;
-          root.scale.setScalar(scale);
-          // Recompute to find how far below origin his feet sit; lift so feet at y=0
-          const bbox2 = new T.Box3().setFromObject(root);
-          const yOffset = -bbox2.min.y;
-          root.position.set(16, yOffset, 6);
-          root.rotation.y = -Math.PI/5;  // face angled toward chase cam
-          // Vertex-level rigging DISABLED for v1 statue.glb (not a Meshy T-pose; already sculpted)
-          if(false) try{
-            root.traverse(o => {
-              if(!o.isMesh) return;
-              const pos = o.geometry.attributes.position;
-              const SHOULDER_X = 0.0022, SHOULDER_Y = 0.0015;
-              const BLEND_IN = 0.0017, BLEND_OUT = 0.0026;
-              const ARM_ANGLE = -Math.PI * 0.52;  // 76deg: arms hang slightly outward for natural stance  // ~86 degrees: arms down to sides
-              for(let i = 0; i < pos.count; i++){
-                const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
-                const absX = Math.abs(ox);
-                if(absX <= BLEND_IN) continue;
-                // Smoothstep weight for natural skin falloff
-                const t = Math.min(1, Math.max(0, (absX - BLEND_IN) / (BLEND_OUT - BLEND_IN)));
-                const w = t * t * (3 - 2 * t);  // smoothstep
-                const side = ox > 0 ? 1 : -1;
-                const px = side * SHOULDER_X, py = SHOULDER_Y;
-                const rx = ox - px, ry = oy - py;
-                const a = w * side * ARM_ANGLE;
-                const sa = Math.sin(a), ca = Math.cos(a);
-                let nx = px + rx*ca - ry*sa, ny = py + rx*sa + ry*ca;
-                // Pull arm slightly inward toward body for natural rest
-                const pullIn = w * side * 0.0004;  // minimal pull-in to avoid stretching
-                nx -= pullIn;
-                pos.setXYZ(i, nx, ny, oz);
-              }
-              pos.needsUpdate = true;
-              o.geometry.computeVertexNormals();
-            });
-          }catch(poseErr){ console.warn(MARK, 'arm pose failed:', poseErr.message); }
-          sc.add(root);
-          console.log(MARK, 'dreads.glb loaded; H=' + size.y.toFixed(1) + ' scale=' + scale.toFixed(2) + ' feetLift=' + yOffset.toFixed(2));
-
-          // Pedestal
-          const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
-          const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
-          const plinth = new T.Mesh(new T.CylinderGeometry(1.4, 1.55, 0.4, 24), plinthMat);
-          plinth.position.set(16, -0.3, 6); plinth.name = 'v3-start-plinth'; sc.add(plinth);
-          const glow = new T.Mesh(new T.TorusGeometry(1.38, 0.08, 10, 48), glowMat);
-          glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
-
-          // Neutral 3-point lighting that overpowers scene's warm sunset so true texture colors show
-          if(!sc.getObjectByName('v3c-statue-fill')){
-            const fillGrp = new T.Group();
-            fillGrp.name = 'v3c-statue-fill';
-            const rx = root.position.x, ry = root.position.y, rz = root.position.z;
-            const key = new T.SpotLight(0xfff8ec, 300, 32, Math.PI/3.5, 0.4, 1);
-            key.position.set(rx+5, ry+9, rz+9); key.target.position.set(rx, ry+5, rz);
-            fillGrp.add(key); fillGrp.add(key.target);
-            const fl = new T.SpotLight(0xffffff, 130, 30, Math.PI/3.5, 0.5, 1);
-            fl.position.set(rx-6, ry+8, rz+8); fl.target.position.set(rx, ry+4, rz);
-            fillGrp.add(fl); fillGrp.add(fl.target);
-            // Soft point light at face level for skin tone
-            const face = new T.PointLight(0xfff6e4, 18, 10, 2);
-            face.position.set(rx+1, ry+9, rz+4);
-            fillGrp.add(face);
-            const rim = new T.SpotLight(0xd0e4ff, 48, 25, Math.PI/4, 0.4, 1);
-            rim.position.set(rx+2, ry+10, rz-6); rim.target.position.set(rx, ry+5, rz);
-            fillGrp.add(rim); fillGrp.add(rim.target);
-            sc.add(fillGrp);
-          }
-        }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
-      }, undefined, err => {
-        console.warn(MARK, 'GLB load failed:', err && err.message);
-        window.__v3StatueLoading = false;
+        }
       });
+      // Fallback: any 14-child group with pink + purple accent materials
+      if(!orig){
+        sc.traverse(o => {
+          if(orig) return;
+          if(o.type === 'Group' && o.children && o.children.length >= 10 && o.children.length <= 16){
+            let hasPink = false, hasPurple = false;
+            o.children.forEach(c => {
+              const col = c.material && c.material.color && c.material.color.getHexString();
+              if(col === 'ff3d7f') hasPink = true;
+              if(col === '7a5cff') hasPurple = true;
+            });
+            if(hasPink && hasPurple) orig = o;
+          }
+        });
+      }
+      if(!orig){ console.warn(MARK, 'race driver original not found'); return false; }
+
+      // Clone the mannequin WITH ALL ITS ORIGINAL MATERIALS (don't rebuild them)
+      const clone = orig.clone(true);
+      clone.name = 'v3-start-statue';
+      // Original has local scale 21 (bakes world size ~21x). Shrink to ~6 units tall for the frame.
+      clone.scale.setScalar(6);
+      // Lift feet to ground: measure after scale
+      clone.position.set(16, 0, 6);
+      sc.updateMatrixWorld(true);
+      // Add a temp container to measure
+      const tmp = new T.Group(); tmp.add(clone); sc.add(tmp);
+      const b = new T.Box3().setFromObject(clone);
+      clone.position.y = -b.min.y;  // lift so feet at y=0
+      sc.add(clone); tmp.remove(clone); sc.remove(tmp);
+
+      // Face toward chase cam (slight angle)
+      clone.rotation.y = -Math.PI / 5;
+
+      clone.traverse(m => {
+        if(m.isMesh){
+          m.castShadow = true;
+          m.receiveShadow = true;
+          m.visible = true;
+          // DO NOT replace materials — keep the originals that have the correct colors
+        }
+      });
+      sc.add(clone);
+      console.log(MARK, 'race-driver cloned with original materials to', clone.position.toArray());
+
+      // Pedestal + glow halo
+      const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
+      const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
+      const plinth = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.5, 24), plinthMat);
+      plinth.position.set(16, -0.25, 6); plinth.name = 'v3-start-plinth';
+      sc.add(plinth);
+      const glow = new T.Mesh(new T.TorusGeometry(2.15, 0.11, 10, 48), glowMat);
+      glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow';
+      sc.add(glow);
+
+      // Fill lights — neutral white so the clone's original colors read true
+      if(!sc.getObjectByName('v3c-statue-fill')){
+        const fillGrp = new T.Group();
+        fillGrp.name = 'v3c-statue-fill';
+        const key = new T.SpotLight(0xffffff, 240, 32, Math.PI/3.5, 0.4, 1);
+        key.position.set(22, 12, 14); key.target.position.set(16, 4, 6);
+        fillGrp.add(key); fillGrp.add(key.target);
+        const fl = new T.SpotLight(0xffffff, 110, 30, Math.PI/3.5, 0.5, 1);
+        fl.position.set(10, 10, 12); fl.target.position.set(16, 4, 6);
+        fillGrp.add(fl); fillGrp.add(fl.target);
+        const rim = new T.SpotLight(0xd0e4ff, 60, 25, Math.PI/4, 0.4, 1);
+        rim.position.set(18, 10, -2); rim.target.position.set(16, 5, 6);
+        fillGrp.add(rim); fillGrp.add(rim.target);
+        sc.add(fillGrp);
+      }
       return true;
-    }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
+    }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message, e.stack); return false; }
   }
 
   function tryInstall(){
