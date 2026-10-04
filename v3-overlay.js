@@ -377,12 +377,26 @@
       // Chest number badge with racing "7"
       const badge = new T.Mesh(new T.BoxGeometry(1.1,0.9,0.08), mat(WHITE,{roughness:0.3}));
       badge.position.set(-0.5, 5.6, 1.08); badge.rotation.y = 0.1; root.add(badge);
-      // Horizontal bar of 7
-      const n7top = new T.Mesh(new T.BoxGeometry(0.55, 0.12, 0.04), mat(0x0a0a0a));
-      n7top.position.set(-0.5, 5.9, 1.14); n7top.rotation.y = 0.1; root.add(n7top);
-      // Diagonal of 7
-      const n7diag = new T.Mesh(new T.BoxGeometry(0.12, 0.78, 0.04), mat(0x0a0a0a));
-      n7diag.position.set(-0.4, 5.5, 1.14); n7diag.rotation.y = 0.1; n7diag.rotation.z = 0.22; root.add(n7diag);
+      // Clean "7" number (top bar + angled stroke)
+      const n7top = new T.Mesh(new T.BoxGeometry(0.60, 0.14, 0.04), mat(0x0a0a0a));
+      n7top.position.set(-0.55, 5.95, 1.14); n7top.rotation.y = 0.1; root.add(n7top);
+      const n7stroke = new T.Mesh(new T.BoxGeometry(0.14, 0.80, 0.04), mat(0x0a0a0a));
+      n7stroke.position.set(-0.40, 5.52, 1.14); n7stroke.rotation.y = 0.1; n7stroke.rotation.z = 0.32; root.add(n7stroke);
+      // Small crossbar on 7 (euro style)
+      const n7cross = new T.Mesh(new T.BoxGeometry(0.26, 0.07, 0.04), mat(0x0a0a0a));
+      n7cross.position.set(-0.46, 5.65, 1.14); n7cross.rotation.y = 0.1; n7cross.rotation.z = 0.32; root.add(n7cross);
+      // Helmet prop beside right foot (iconic race-driver detail)
+      const helmet = new T.Mesh(new T.SphereGeometry(0.65, 20, 16), mat(0x111418, {roughness:0.25, metalness:0.5}));
+      helmet.position.set(1.2, 0.65, 0.3); helmet.scale.set(1.0, 0.95, 1.1);
+      root.add(helmet);
+      // Teal visor stripe across helmet
+      const visor = new T.Mesh(new T.SphereGeometry(0.63, 20, 10, 0, Math.PI*2, Math.PI/3, Math.PI/3.2), emat(TEAL, 0.9));
+      visor.position.set(1.2, 0.70, 0.3); visor.scale.set(1.0, 0.95, 1.12); visor.rotation.x = 0.15;
+      root.add(visor);
+      // Red stripe over helmet top
+      const htrim = new T.Mesh(new T.TorusGeometry(0.63, 0.05, 8, 24, Math.PI), emat(RED, 0.4));
+      htrim.position.set(1.2, 0.65, 0.3); htrim.rotation.y = Math.PI/2;
+      root.add(htrim);
 
       // Arms — straight down, slight outward angle (professional/at-attention stance)
       // Right arm (viewer's left since statue faces camera)
