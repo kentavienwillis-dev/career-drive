@@ -385,9 +385,9 @@
             root.traverse(o => {
               if(!o.isMesh) return;
               const pos = o.geometry.attributes.position;
-              const SHOULDER_X = 0.0023, SHOULDER_Y = 0.0016;
-              const BLEND_IN = 0.0018, BLEND_OUT = 0.0028;
-              const ARM_ANGLE = -Math.PI * 0.47;  // 76deg: arms hang slightly outward for natural stance  // ~86 degrees: arms down to sides
+              const SHOULDER_X = 0.0022, SHOULDER_Y = 0.0015;
+              const BLEND_IN = 0.0017, BLEND_OUT = 0.0026;
+              const ARM_ANGLE = -Math.PI * 0.52;  // 76deg: arms hang slightly outward for natural stance  // ~86 degrees: arms down to sides
               for(let i = 0; i < pos.count; i++){
                 const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
                 const absX = Math.abs(ox);
@@ -402,7 +402,7 @@
                 const sa = Math.sin(a), ca = Math.cos(a);
                 let nx = px + rx*ca - ry*sa, ny = py + rx*sa + ry*ca;
                 // Pull arm slightly inward toward body for natural rest
-                const pullIn = w * side * 0.00015;  // minimal pull-in to avoid stretching
+                const pullIn = w * side * 0.0004;  // minimal pull-in to avoid stretching
                 nx -= pullIn;
                 pos.setXYZ(i, nx, ny, oz);
               }
