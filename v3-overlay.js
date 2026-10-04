@@ -344,7 +344,7 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('marquis.glb?v=2', gltf => {
+      loader.load('marquis.glb?v=3', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -374,12 +374,11 @@
               if(m.emissive){ m.emissive.setHex(0x000000); }
               m.emissiveIntensity = 0;
               // Subtle warm tint lifts skin + fabric saturation without blowing out
-              if(m.color){ m.color.setHex(0xfffaf2); }
+              if(m.color){ m.color.setHex(0xffffff); } // pure white — show original Meshy texture colors unchanged
               // Photogrammetry scans benefit from slightly softer roughness so highlights sit on cloth
-              m.roughness = (typeof m.roughness === 'number') ? Math.max(0.42, m.roughness * 0.85) : 0.55;
-              m.metalness = (typeof m.metalness === 'number') ? Math.min(m.metalness, 0.12) : 0.05;
+              // Leave roughness/metalness EXACTLY as Meshy authored them — don't 'enhance'
               // Pick up the scene HDR environment for subtle reflections / fill
-              if(envMap){ m.envMap = envMap; m.envMapIntensity = 0.85; }
+              if(envMap){ m.envMap = envMap; m.envMapIntensity = 0.55; } // mild env for subtle fill only
               m.toneMapped = true;
               m.side = T.FrontSide;
               m.needsUpdate = true;
