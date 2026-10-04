@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v7.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v8.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
