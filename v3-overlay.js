@@ -406,23 +406,11 @@
               skinning: !!o.isSkinnedMesh
             });
           });
+          // Just set shadows - don't rebuild material (we did it with vertex colors above)
           root.traverse(o => {
             if(o.isMesh){
               o.castShadow = true;
               o.receiveShadow = true;
-              // Rebuild material: Meshy's default has full-white emissive + wrong colorSpace that pink-tints under the dusk sunset light.
-              const origMap = o.material && o.material.map;
-              if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.needsUpdate = true; }
-              const newMat = new T.MeshStandardMaterial({
-                map: origMap,
-                color: 0xffffff,
-                emissive: new T.Color(0x000000),
-                emissiveIntensity: 0,
-                roughness: 0.55,
-                metalness: 0.08,
-                side: T.DoubleSide
-              });
-              o.material = newMat;
             }
           });
           // Measure & auto-scale so figure stands ~10 units tall
