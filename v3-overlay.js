@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v12.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v13.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -442,11 +442,11 @@
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
             // Primary white flood 2m from statue
-            const flood = new T.PointLight(0xffffff, 600, 15, 1.3);
+            const flood = new T.PointLight(0xffffff, 180, 15, 1.3);
             flood.position.set(17, 6, 8);
             fillGrp.add(flood);
             // Secondary bounce
-            const bounce = new T.PointLight(0xffffff, 300, 12, 1.5);
+            const bounce = new T.PointLight(0xfff5e8, 90, 12, 1.5);
             bounce.position.set(14, 8, 7);
             fillGrp.add(bounce);
             sc.add(fillGrp);
