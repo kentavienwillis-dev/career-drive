@@ -369,8 +369,10 @@
               if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
               if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
               if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
-              if(m.emissive) m.emissive.setHex(0x000000);
-              m.emissiveIntensity = 0;
+              // SELF-ILLUMINATE from baseColor: scene teal/pink lights can't tint the figure
+              m.emissiveMap = m.map;
+              if(m.emissive) m.emissive.setHex(0xffffff);
+              m.emissiveIntensity = 0.55;
               if(m.color) m.color.setHex(0xffffff);
               m.envMap = null;
               m.envMapIntensity = 0;
