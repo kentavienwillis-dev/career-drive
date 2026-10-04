@@ -333,52 +333,60 @@
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
 
-      // Find the one and only named humanoid in the scene
-      const suit = sc.getObjectByName('suit-figure');
-      if(!suit){ return false; }
+      // Find the race-driver mannequin standing on top of a billboard (14 children,
+      // pink + purple accents, elevated Y=~6, world size ~14x21x14). This is the figure
+      // you see standing on top of the Kentavien Willis platform at the top-right of the frame.
+      let orig = null;
+      sc.traverse(o => {
+        if(orig) return;
+        if(o.type === 'Group' && o.children && o.children.length === 14){
+          let hasPink = false, hasPurple = false;
+          o.children.forEach(c => {
+            const col = c.material && c.material.color && c.material.color.getHexString();
+            if(col === 'ff3d7f') hasPink = true;
+            if(col === '7a5cff') hasPurple = true;
+          });
+          if(hasPink && hasPurple) orig = o;
+        }
+      });
+      if(!orig){ console.warn(MARK, 'race driver original not found'); return false; }
 
-      // The suit-figure group contains: pedestal meshes + 2 spot lights + ONE Group that is the
-      // actual humanoid (child size ~4x10.5x3.4). Clone the WHOLE suit-figure group so we get
-      // the figure, its pedestal, AND its original lights — exactly as it looks on the right.
-      const clone = suit.clone(true);
+      // Clone with ALL original materials, keep original scale 21x local
+      const clone = orig.clone(true);
       clone.name = 'v3-start-statue';
-
-      // Original local scale is 21x. Scale down so suit-figure sits at ~7u tall in our frame.
-      // The group's intrinsic ground height is ~14. Scale 0.5 => 7u.
-      clone.scale.setScalar(0.5);
-
-      // Place at the new statue spot
+      // Original has local scale 21 producing world size 14.6x21.3x14.7
+      // We want ~6-7u tall for the game frame -> scale ~6 (world size becomes 4.2 x 6 x 4.2)
+      clone.scale.setScalar(6);
       clone.position.set(16, 0, 6);
-      // Face slightly toward the chase cam (default faces +Z, rotate so face angles toward -X)
       clone.rotation.y = -Math.PI / 5;
 
-      // Measure after transforms to lift feet to y=0
       sc.add(clone);
       sc.updateMatrixWorld(true);
-      const bbox = new T.Box3().setFromObject(clone);
-      clone.position.y = -bbox.min.y;
+      // Lift feet to y=0
+      const bb = new T.Box3().setFromObject(clone);
+      clone.position.y = -bb.min.y;
 
       clone.traverse(m => {
         if(m.isMesh){
           m.castShadow = true;
           m.receiveShadow = true;
           m.visible = true;
-          // KEEP original materials — they are what matches the scene
+          // KEEP original materials — they have the correct scene colors
         }
       });
-      console.log(MARK, 'suit-figure cloned (keeping original materials) at', clone.position.toArray());
+      console.log(MARK, 'race-driver cloned WITH original materials');
 
-      // Pedestal + glow halo (base platform under the figure)
+      // Pedestal + glow halo
       const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
       const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
-      const plinth = new T.Mesh(new T.CylinderGeometry(2.5, 2.7, 0.5, 24), plinthMat);
+      const plinth = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.5, 24), plinthMat);
       plinth.position.set(16, -0.25, 6); plinth.name = 'v3-start-plinth';
       sc.add(plinth);
-      const glow = new T.Mesh(new T.TorusGeometry(2.45, 0.12, 10, 48), glowMat);
+      const glow = new T.Mesh(new T.TorusGeometry(2.15, 0.11, 10, 48), glowMat);
       glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow';
       sc.add(glow);
 
-      // Neutral white fill lights so the clone reads with its true scene colors
+      // Fill lights
       if(!sc.getObjectByName('v3c-statue-fill')){
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
@@ -394,7 +402,7 @@
         sc.add(fillGrp);
       }
       return true;
-    }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message, e.stack); return false; }
+    }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
   }
 
   function tryInstall(){
