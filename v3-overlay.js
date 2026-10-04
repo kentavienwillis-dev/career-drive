@@ -411,9 +411,10 @@
     const hudReady = !!document.querySelector('.v3-speedo');
     const bbReady = sc && !!sc.getObjectByName('v3-billboard-group');
     const plateReady = car && car.root && !!car.root.getObjectByName('v3-plate');
-    if((hudReady && bbReady && plateReady) || attempts > 60){
+    const statueReady = sc && !!sc.getObjectByName('v3-start-statue');
+    if((hudReady && bbReady && plateReady && statueReady) || attempts > 60){
       clearInterval(iv);
-      console.log(MARK, 'install complete after', attempts, 'attempts', {hudReady, bbReady, plateReady});
+      console.log(MARK, 'install complete after', attempts, 'attempts', {hudReady, bbReady, plateReady, statueReady});
     }
   }, 500);
 
