@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CAREER DRIVE v3 — 2026 PREMIUM OVERLAY
+   HUD, minimap, nav card, mode selector matching reference image
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root{
+  --v3-ink:#eef3f8;
+  --v3-ink-dim:#b7c3d1;
+  --v3-ink-faint:#6c7a8b;
+  --v3-accent:#4df0e0;
+  --v3-accent-glow:#4df0e04d;
+  --v3-warm:#ffb864;
+  --v3-red:#ff4a5c;
+  --v3-glass:rgba(10,16,22,.72);
+  --v3-glass-strong:rgba(6,11,17,.88);
+  --v3-stroke:rgba(255,255,255,.08);
+  --v3-stroke-bright:rgba(77,240,224,.42);
+}
+
+/* Hide the old speedo + runclock entirely — v3 replaces them */
+#speedo, #runclock{ display:none !important; }
+
+/* ─── v3 BOTTOM-RIGHT: PREMIUM SPEEDOMETER ─── */
+.v3-speedo{
+  position:fixed;
+  right:28px;
+  bottom:calc(28px + var(--safe-b,0px));
+  z-index:50;
+  width:208px;
+  height:208px;
+  pointer-events:none;
+}
+.v3-speedo svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(135deg);}
+.v3-sp-track{fill:none;stroke:rgba(255,255,255,.08);stroke-width:3;}
+.v3-sp-fill{
+  fill:none;
+  stroke:url(#v3-sp-grad);
+  stroke-width:4;
+  stroke-linecap:round;
+  stroke-dasharray:490;
+  stroke-dashoffset:490;
+  transition:stroke-dashoffset .12s linear;
+  filter:drop-shadow(0 0 10px var(--v3-accent-glow));
+}
+.v3-sp-center{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:2px;
+  pointer-events:none;
+}
+.v3-sp-speed{
+  font:700 56px/1 var(--cond, 'Barlow Condensed'), sans-serif;
+  letter-spacing:.012em;
+  color:var(--v3-ink);
+  text-shadow:0 0 24px rgba(77,240,224,.3);
+  font-variant-numeric:tabular-nums;
+}
+.v3-sp-unit{
+  font:600 10px/1 var(--sans, 'Inter'), sans-serif;
+  letter-spacing:.32em;
+  color:var(--v3-ink-faint);
+  margin-top:3px;
+}
+.v3-sp-gear{
+  position:absolute;
+  right:-8px;
+  bottom:38px;
+  background:rgba(14,22,32,.88);
+  border:1px solid var(--v3-stroke);
+  border-radius:6px;
+  padding:7px 11px;
+  font:700 20px/1 var(--cond), sans-serif;
+  color:var(--v3-ink);
+  letter-spacing:.02em;
+  min-width:34px;
+  text-align:center;
+}
+.v3-modes{
+  position:fixed;
+  right:260px;
+  bottom:calc(44px + var(--safe-b,0px));
+  z-index:50;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  pointer-events:auto;
+  text-align:right;
+}
+.v3-mode{
+  font:700 11.5px/1 var(--sans), sans-serif;
+  letter-spacing:.28em;
+  color:var(--v3-ink-faint);
+  cursor:pointer;
+  padding:4px 2px;
+  transition:color .15s ease;
+}
+.v3-mode:hover{ color:var(--v3-ink-dim); }
+.v3-mode.active{
+  color:var(--v3-accent);
+  text-shadow:0 0 8px var(--v3-accent-glow);
+}
+.v3-mode-bar{
+  height:1px;
+  background:linear-gradient(90deg,transparent,var(--v3-accent),transparent);
+  opacity:.5;
+  margin:3px 0;
+}
+
+/* ─── v3 NAV CARD ─── */
+.v3-nav{
+  position:fixed;
+  right:260px;
+  bottom:calc(170px + var(--safe-b,0px));
+  z-index:50;
+  background:var(--v3-glass);
+  border:1px solid var(--v3-stroke);
+  border-radius:8px;
+  padding:9px 14px 9px 11px;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:112px;
+}
+.v3-nav-pin{
+  width:22px;height:22px;
+  display:grid;place-items:center;
+  background:rgba(77,240,224,.14);
+  border:1px solid var(--v3-stroke-bright);
+  border-radius:50%;
+  color:var(--v3-accent);
+  font-size:11px;
+  flex-shrink:0;
+}
+.v3-nav-txt{display:flex;flex-direction:column;gap:1px;}
+.v3-nav-d{
+  font:700 15px/1 var(--cond), sans-serif;
+  letter-spacing:.02em;
+  color:var(--v3-ink);
+  font-variant-numeric:tabular-nums;
+}
+.v3-nav-l{
+  font:600 8px/1 var(--sans), sans-serif;
+  letter-spacing:.3em;
+  color:var(--v3-ink-faint);
+}
+
+/* ─── v3 MINIMAP ─── */
+.v3-mini{
+  position:fixed;
+  left:28px;
+  bottom:calc(28px + var(--safe-b,0px));
+  z-index:50;
+  width:148px;
+  height:148px;
+  background:radial-gradient(circle at 40% 40%,rgba(14,22,32,.95),rgba(4,8,12,.92));
+  border:1px solid var(--v3-stroke);
+  border-radius:50%;
+  overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 0 20px rgba(0,0,0,.4);
+  pointer-events:none;
+}
+.v3-mini svg{position:absolute;inset:0;width:100%;height:100%;}
+.v3-mini-grid{stroke:rgba(77,240,224,.08);stroke-width:.5;fill:none;}
+.v3-mini-route{
+  fill:none;
+  stroke:rgba(77,240,224,.55);
+  stroke-width:2.2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 0 4px var(--v3-accent-glow));
+}
+.v3-mini-poi{fill:var(--v3-warm);stroke:rgba(255,184,100,.3);stroke-width:3;stroke-opacity:.6;}
+.v3-mini-poi.visited{fill:var(--v3-accent);stroke:var(--v3-accent-glow);}
+.v3-mini-car{fill:var(--v3-ink);stroke:var(--v3-accent);stroke-width:1.4;filter:drop-shadow(0 0 6px var(--v3-accent-glow));}
+.v3-mini-label{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);font:700 8px/1 var(--sans), sans-serif;letter-spacing:.3em;color:var(--v3-ink-faint);}
+.v3-mini-cardinal{position:absolute;top:7px;left:50%;transform:translateX(-50%);font:700 9px/1 var(--sans), sans-serif;letter-spacing:.1em;color:var(--v3-accent);opacity:.65;}
+
+@media(hover:none) and (pointer:coarse){
+  .v3-speedo{width:132px;height:132px;right:14px;bottom:calc(14px + var(--safe-b,0px));}
+  .v3-sp-speed{font-size:36px;} .v3-sp-unit{font-size:8px;}
+  .v3-sp-gear{right:-4px;bottom:26px;padding:5px 8px;font-size:14px;}
+  .v3-modes{right:148px;bottom:calc(28px + var(--safe-b,0px));}
+  .v3-mode{font-size:9px;letter-spacing:.22em;}
+  .v3-nav{right:148px;bottom:calc(110px + var(--safe-b,0px));padding:7px 10px 7px 8px;min-width:92px;}
+  .v3-nav-d{font-size:12px;}
+  .v3-mini{width:100px;height:100px;left:14px;bottom:calc(14px + var(--safe-b,0px));}
+}
