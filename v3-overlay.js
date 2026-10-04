@@ -376,6 +376,8 @@
               if(m.color) m.color.setHex(0xffffff);
               m.envMap = null;
               m.envMapIntensity = 0;
+              m.toneMapped = false;   // bypass scene tone mapping (which can tint)
+              m.fog = false;          // bypass scene fog (which is cold blue-gray)
               m.side = T.FrontSide;
               m.needsUpdate = true;
             });
