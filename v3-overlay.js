@@ -332,75 +332,105 @@
       const T = window.THREE, sc = window.__scene;
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
-
-      // Find the race-driver mannequin standing on top of a billboard (14 children,
-      // pink + purple accents, elevated Y=~6, world size ~14x21x14). This is the figure
-      // you see standing on top of the Kentavien Willis platform at the top-right of the frame.
-      let orig = null;
-      sc.traverse(o => {
-        if(orig) return;
-        if(o.type === 'Group' && o.children && o.children.length === 14){
-          let hasPink = false, hasPurple = false;
-          o.children.forEach(c => {
-            const col = c.material && c.material.color && c.material.color.getHexString();
-            if(col === 'ff3d7f') hasPink = true;
-            if(col === '7a5cff') hasPurple = true;
-          });
-          if(hasPink && hasPurple) orig = o;
-        }
-      });
-      if(!orig){ console.warn(MARK, 'race driver original not found'); return false; }
-
-      // Clone with ALL original materials, keep original scale 21x local
-      const clone = orig.clone(true);
-      clone.name = 'v3-start-statue';
-      // Original has local scale 21 producing world size 14.6x21.3x14.7
-      // We want ~6-7u tall for the game frame -> scale ~6 (world size becomes 4.2 x 6 x 4.2)
-      clone.scale.setScalar(6);
-      clone.position.set(16, 0, 6);
-      clone.rotation.y = -Math.PI / 5;
-
-      sc.add(clone);
-      sc.updateMatrixWorld(true);
-      // Lift feet to y=0
-      const bb = new T.Box3().setFromObject(clone);
-      clone.position.y = -bb.min.y;
-
-      clone.traverse(m => {
-        if(m.isMesh){
-          m.castShadow = true;
-          m.receiveShadow = true;
-          m.visible = true;
-          // KEEP original materials — they have the correct scene colors
-        }
-      });
-      console.log(MARK, 'race-driver cloned WITH original materials');
-
-      // Pedestal + glow halo
-      const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
-      const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
-      const plinth = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.5, 24), plinthMat);
-      plinth.position.set(16, -0.25, 6); plinth.name = 'v3-start-plinth';
-      sc.add(plinth);
-      const glow = new T.Mesh(new T.TorusGeometry(2.15, 0.11, 10, 48), glowMat);
-      glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow';
-      sc.add(glow);
-
-      // Fill lights
-      if(!sc.getObjectByName('v3c-statue-fill')){
-        const fillGrp = new T.Group();
-        fillGrp.name = 'v3c-statue-fill';
-        const key = new T.SpotLight(0xffffff, 220, 32, Math.PI/3.5, 0.4, 1);
-        key.position.set(22, 12, 14); key.target.position.set(16, 4, 6);
-        fillGrp.add(key); fillGrp.add(key.target);
-        const fl = new T.SpotLight(0xffffff, 100, 30, Math.PI/3.5, 0.5, 1);
-        fl.position.set(10, 10, 12); fl.target.position.set(16, 4, 6);
-        fillGrp.add(fl); fillGrp.add(fl.target);
-        const rim = new T.SpotLight(0xd0e4ff, 55, 25, Math.PI/4, 0.4, 1);
-        rim.position.set(18, 10, -2); rim.target.position.set(16, 5, 6);
-        fillGrp.add(rim); fillGrp.add(rim.target);
-        sc.add(fillGrp);
+      if(window.__v3StatueLoading) return false;
+      if(!T.GLTFLoader){
+        if(window.__v3GLTFLoaderLoading) return false;
+        window.__v3GLTFLoaderLoading = true;
+        const sc0 = document.createElement('script');
+        sc0.src = 'GLTFLoader.js?v=2';
+        document.head.appendChild(sc0);
+        return false;
       }
+
+      window.__v3StatueLoading = true;
+      const loader = new T.GLTFLoader();
+      loader.load('racer.glb?v=1', gltf => {
+        try{
+          const root = gltf.scene || gltf.scenes[0];
+          root.name = 'v3-start-statue';
+          // Keep the original textured material; just fix the color-space + kill emissive glow
+          root.traverse(o => {
+            if(o.isMesh){
+              o.castShadow = true;
+              o.receiveShadow = true;
+              const origMap = o.material && o.material.map;
+              if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.needsUpdate = true; }
+              o.material = new T.MeshStandardMaterial({
+                map: origMap,
+                color: 0xffffff,
+                emissive: new T.Color(0x000000),
+                emissiveIntensity: 0,
+                roughness: 0.55,
+                metalness: 0.08,
+                side: T.DoubleSide
+              });
+            }
+          });
+          // Vertex-level arm rig: swing arms down from Meshy T-pose
+          root.traverse(o => {
+            if(!o.isMesh) return;
+            const pos = o.geometry.attributes.position;
+            const SHOULDER_X = 0.0022, SHOULDER_Y = 0.0015;
+            const BLEND_IN = 0.0017, BLEND_OUT = 0.0026;
+            const ARM_ANGLE = -Math.PI * 0.52;
+            for(let i = 0; i < pos.count; i++){
+              const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
+              const absX = Math.abs(ox);
+              if(absX <= BLEND_IN) continue;
+              const t = Math.min(1, Math.max(0, (absX - BLEND_IN) / (BLEND_OUT - BLEND_IN)));
+              const w = t * t * (3 - 2 * t);
+              const side = ox > 0 ? 1 : -1;
+              const px = side * SHOULDER_X, py = SHOULDER_Y;
+              const rx = ox - px, ry = oy - py;
+              const a = w * side * ARM_ANGLE;
+              const sa = Math.sin(a), ca = Math.cos(a);
+              pos.setXYZ(i, (px + rx*ca - ry*sa) - w*side*0.0004, py + rx*sa + ry*ca, oz);
+            }
+            pos.needsUpdate = true;
+            o.geometry.computeVertexNormals();
+          });
+
+          // Auto-scale to ~6u tall and plant at the statue spot
+          const bbox = new T.Box3().setFromObject(root);
+          const size = new T.Vector3(); bbox.getSize(size);
+          root.scale.setScalar(size.y > 0.01 ? (6 / size.y) : 1);
+          const bbox2 = new T.Box3().setFromObject(root);
+          root.position.set(16, -bbox2.min.y, 6);
+          root.rotation.y = -Math.PI / 5;
+          sc.add(root);
+          console.log(MARK, 'racer.glb loaded with FULL textured material');
+
+          // Plinth + glow halo
+          const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
+          const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
+          const plinth = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.5, 24), plinthMat);
+          plinth.position.set(16, -0.25, 6); plinth.name = 'v3-start-plinth'; sc.add(plinth);
+          const glow = new T.Mesh(new T.TorusGeometry(2.15, 0.11, 10, 48), glowMat);
+          glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
+
+          // Neutral white 3-point lighting so texture reads true
+          if(!sc.getObjectByName('v3c-statue-fill')){
+            const fillGrp = new T.Group();
+            fillGrp.name = 'v3c-statue-fill';
+            const key = new T.SpotLight(0xfff8ec, 300, 32, Math.PI/3.5, 0.4, 1);
+            key.position.set(22, 12, 14); key.target.position.set(16, 5, 6);
+            fillGrp.add(key); fillGrp.add(key.target);
+            const fl = new T.SpotLight(0xffffff, 130, 30, Math.PI/3.5, 0.5, 1);
+            fl.position.set(10, 10, 12); fl.target.position.set(16, 4, 6);
+            fillGrp.add(fl); fillGrp.add(fl.target);
+            const rim = new T.SpotLight(0xd0e4ff, 48, 25, Math.PI/4, 0.4, 1);
+            rim.position.set(18, 10, -2); rim.target.position.set(16, 5, 6);
+            fillGrp.add(rim); fillGrp.add(rim.target);
+            const face = new T.PointLight(0xfff6e4, 18, 10, 2);
+            face.position.set(17, 9, 10);
+            fillGrp.add(face);
+            sc.add(fillGrp);
+          }
+        }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
+      }, undefined, err => {
+        console.warn(MARK, 'GLB load failed:', err && err.message);
+        window.__v3StatueLoading = false;
+      });
       return true;
     }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
   }
