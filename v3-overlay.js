@@ -372,7 +372,7 @@
               map: origMap,
               normalMap: origNormal,
               color: 0xffffff,
-              roughness: 0.75,
+              roughness: 0.95,
               metalness: 0.02,
               envMapIntensity: 0,  // no env tinting
               side: T.FrontSide
@@ -442,11 +442,11 @@
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
             // Primary white flood 2m from statue
-            const flood = new T.PointLight(0xffffff, 180, 15, 1.3);
+            const flood = new T.PointLight(0xffffff, 110, 15, 1.3);
             flood.position.set(17, 6, 8);
             fillGrp.add(flood);
             // Secondary bounce
-            const bounce = new T.PointLight(0xfff5e8, 90, 12, 1.5);
+            const bounce = new T.PointLight(0xfff5e8, 50, 12, 1.5);
             bounce.position.set(14, 8, 7);
             fillGrp.add(bounce);
             sc.add(fillGrp);
