@@ -371,6 +371,30 @@
           const yOffset = -bbox2.min.y;
           root.position.set(16, yOffset, 6);
           root.rotation.y = -Math.PI/5;  // face angled toward chase cam
+          // Vertex-level rigging: swing arms down from T-pose (no bones in Meshy source)
+          try{
+            root.traverse(o => {
+              if(!o.isMesh) return;
+              const pos = o.geometry.attributes.position;
+              const SHOULDER_X = 0.0025, SHOULDER_Y = 0.0012;
+              const BLEND_IN = 0.0020, BLEND_OUT = 0.0030;
+              const ARM_ANGLE = -Math.PI * 0.48;  // ~86 degrees: arms down to sides
+              for(let i = 0; i < pos.count; i++){
+                const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
+                const absX = Math.abs(ox);
+                if(absX <= BLEND_IN) continue;
+                const w = Math.min(1, (absX - BLEND_IN) / (BLEND_OUT - BLEND_IN));
+                const side = ox > 0 ? 1 : -1;
+                const px = side * SHOULDER_X, py = SHOULDER_Y;
+                const rx = ox - px, ry = oy - py;
+                const a = w * side * ARM_ANGLE;
+                const sa = Math.sin(a), ca = Math.cos(a);
+                pos.setXYZ(i, px + rx*ca - ry*sa, py + rx*sa + ry*ca, oz);
+              }
+              pos.needsUpdate = true;
+              o.geometry.computeVertexNormals();
+            });
+          }catch(poseErr){ console.warn(MARK, 'arm pose failed:', poseErr.message); }
           sc.add(root);
           console.log(MARK, 'dreads.glb loaded; H=' + size.y.toFixed(1) + ' scale=' + scale.toFixed(2) + ' feetLift=' + yOffset.toFixed(2));
 
