@@ -433,8 +433,8 @@
             fl.position.set(rx-6, ry+8, rz+8); fl.target.position.set(rx, ry+4, rz);
             fillGrp.add(fl); fillGrp.add(fl.target);
             // Soft point light at face level for skin tone
-            const face = new T.PointLight(0xfff6e4, 12, 8, 2);
-            face.position.set(rx+1, ry+8, rz+4);
+            const face = new T.PointLight(0xfff6e4, 18, 10, 2);
+            face.position.set(rx+1, ry+9, rz+4);
             fillGrp.add(face);
             const rim = new T.SpotLight(0xd0e4ff, 65, 25, Math.PI/4, 0.4, 1);
             rim.position.set(rx+2, ry+10, rz-6); rim.target.position.set(rx, ry+5, rz);
