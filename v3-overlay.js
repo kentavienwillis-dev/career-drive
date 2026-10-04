@@ -385,16 +385,17 @@
               wPos.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(matWorld);
               const t = (wPos.y - yMin) / h;  // 0 at feet, 1 at head top
               let c;
+              // Human proportions reference (fraction of total height from feet):
+              //  feet 0 -> ankle 0.05 -> knee 0.28 -> hip 0.52 -> chest 0.72 -> shoulder 0.80 -> chin 0.86 -> brow 0.92 -> crown 1.0
               if(t > 0.92){ c = HAIR; }
-              else if(t > 0.82){ c = SKIN; }
-              else if(t > 0.78){ c = SKIN; }  // neck
-              else if(t > 0.60){
-                // Upper torso: white band at 0.65-0.70, black elsewhere
-                c = (t > 0.63 && t < 0.70) ? WHITE_BAND : JACKET_BLACK;
+              else if(t > 0.84){ c = SKIN; }           // face only
+              else if(t > 0.80){ c = JACKET_BLACK; }   // collar/neck line (dark)
+              else if(t > 0.52){
+                // Jacket region (shoulder to hip): black with white band across chest
+                c = (t > 0.68 && t < 0.74) ? WHITE_BAND : JACKET_BLACK;
               }
-              else if(t > 0.08){ c = PANTS; }
-              else if(t > 0.03){ c = SHOES; }
-              else { c = SHOE_GOLD; }
+              else if(t > 0.06){ c = PANTS; }          // pants
+              else { c = SHOES; }                       // shoes
               colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
             }
             o.geometry.setAttribute('color', new T2.BufferAttribute(colors, 3));
