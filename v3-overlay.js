@@ -441,21 +441,27 @@
           );
           glow.position.set(16, 0.94, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
 
-          // Pure NEUTRAL WHITE lighting so the Meshy texture colors render exactly as authored
-          // (no colored rim/fill tinting the suit/skin away from original)
+          // HIGH-INTENSITY neutral white rig to OVERPOWER nearby colored scene lights
+          // (there are 900-1300 intensity teal/pink/blue point lights near this spot that
+          // would otherwise tint the suit; we need to flood with white strongly enough to win)
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // KEY — bright neutral white from camera-right-up (primary modeling)
-            const key = new T.SpotLight(0xffffff, 420, 36, Math.PI/3.4, 0.5, 1.1);
-            key.position.set(22, 14, 14); key.target.position.set(16, 5, 6);
+            // KEY — pure white, VERY bright, narrow cone focused on statue
+            const key = new T.SpotLight(0xffffff, 2200, 20, Math.PI/5, 0.3, 1);
+            key.position.set(19, 12, 11); key.target.position.set(16, 5, 6);
             fillGrp.add(key); fillGrp.add(key.target);
-            // FILL — soft neutral white from camera-left (shadow lift)
-            const fl = new T.SpotLight(0xffffff, 180, 32, Math.PI/3.2, 0.6, 1);
-            fl.position.set(10, 10, 13); fl.target.position.set(16, 4, 6);
+            // FILL — white, moderate, from the other side
+            const fl = new T.SpotLight(0xffffff, 1200, 20, Math.PI/4.5, 0.4, 1);
+            fl.position.set(13, 10, 11); fl.target.position.set(16, 4, 6);
             fillGrp.add(fl); fillGrp.add(fl.target);
-            // AMBIENT — a touch so shadow areas never go pitch black
-            const amb = new T.AmbientLight(0xffffff, 0.35);
+            // TOP — downward white so shoulders & head read true
+            const top = new T.SpotLight(0xffffff, 1500, 20, Math.PI/4, 0.4, 1);
+            top.position.set(16, 15, 7); top.target.position.set(16, 5, 6);
+            fillGrp.add(top); fillGrp.add(top.target);
+            // AMBIENT around the statue area only (via point light with falloff)
+            const amb = new T.PointLight(0xffffff, 60, 10, 1);
+            amb.position.set(16, 5, 6);
             fillGrp.add(amb);
             sc.add(fillGrp);
           }
