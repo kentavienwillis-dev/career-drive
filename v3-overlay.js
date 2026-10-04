@@ -441,28 +441,21 @@
           );
           glow.position.set(16, 0.94, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
 
-          // HIGH-INTENSITY neutral white rig to OVERPOWER nearby colored scene lights
-          // (there are 900-1300 intensity teal/pink/blue point lights near this spot that
-          // would otherwise tint the suit; we need to flood with white strongly enough to win)
+          // MINIMAL lighting rig — just a close bright PointLight to flood the statue
+          // with white and overpower nearby colored scene lights. Fewer lights = fewer
+          // shader permutations = faster boot. The PointLight at near-zero distance
+          // with intensity 400 is >> than scene lights at this distance.
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // KEY — pure white, VERY bright, narrow cone focused on statue
-            const key = new T.SpotLight(0xffffff, 2200, 20, Math.PI/5, 0.3, 1);
-            key.position.set(19, 12, 11); key.target.position.set(16, 5, 6);
-            fillGrp.add(key); fillGrp.add(key.target);
-            // FILL — white, moderate, from the other side
-            const fl = new T.SpotLight(0xffffff, 1200, 20, Math.PI/4.5, 0.4, 1);
-            fl.position.set(13, 10, 11); fl.target.position.set(16, 4, 6);
-            fillGrp.add(fl); fillGrp.add(fl.target);
-            // TOP — downward white so shoulders & head read true
-            const top = new T.SpotLight(0xffffff, 1500, 20, Math.PI/4, 0.4, 1);
-            top.position.set(16, 15, 7); top.target.position.set(16, 5, 6);
-            fillGrp.add(top); fillGrp.add(top.target);
-            // AMBIENT around the statue area only (via point light with falloff)
-            const amb = new T.PointLight(0xffffff, 60, 10, 1);
-            amb.position.set(16, 5, 6);
-            fillGrp.add(amb);
+            // Primary white flood 2m from statue
+            const flood = new T.PointLight(0xffffff, 600, 15, 1.3);
+            flood.position.set(17, 6, 8);
+            fillGrp.add(flood);
+            // Secondary bounce
+            const bounce = new T.PointLight(0xffffff, 300, 12, 1.5);
+            bounce.position.set(14, 8, 7);
+            fillGrp.add(bounce);
             sc.add(fillGrp);
           }
         }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
