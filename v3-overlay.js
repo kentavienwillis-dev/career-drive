@@ -421,9 +421,9 @@
               if(m.color) m.color.setHex(0xffffff);
               // STUDIO env (not scene env) at high intensity = Meshy-preview look
               m.envMap = studioEnv || null;
-              m.envMapIntensity = studioEnv ? 2.2 : 0;
+              m.envMapIntensity = studioEnv ? 3.5 : 0;
               // Match Meshy's default material response
-              m.roughness = 0.72;
+              m.roughness = 0.70;
               m.metalness = 0.0;
               m.transparent = false;
               m.opacity = 1.0;
@@ -537,19 +537,23 @@
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
             // KEY — bright warm-white top-right (primary studio light)
-            const key = new T.PointLight(0xfff8ec, 650, 18, 0.9);
+            const key = new T.PointLight(0xfff8ec, 1400, 22, 0.9);
             key.position.set(19, 11, 10);
             fillGrp.add(key);
             // FILL — soft warm top-left (reduces shadow density)
-            const fill = new T.PointLight(0xfff0d8, 360, 15, 1.0);
+            const fill = new T.PointLight(0xfff0d8, 800, 18, 1.0);
             fill.position.set(13, 9, 9);
             fillGrp.add(fill);
             // RIM — cool neutral behind-above (silhouette separation)
-            const rim = new T.PointLight(0xeef4ff, 200, 14, 1.1);
+            const rim = new T.PointLight(0xeef4ff, 500, 16, 1.1);
             rim.position.set(16, 10, 2);
             fillGrp.add(rim);
+            // FRONT — direct front-fill so chest/face always read bright at splash angle
+            const front = new T.PointLight(0xfff6e6, 600, 14, 1.0);
+            front.position.set(16, 6, 11);
+            fillGrp.add(front);
             // LOCAL HEMI — bright uniform ambient so shadow sides read
-            const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 1.4);
+            const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 3.2);
             hemi.position.set(16, 10, 6);
             fillGrp.add(hemi);
             sc.add(fillGrp);
