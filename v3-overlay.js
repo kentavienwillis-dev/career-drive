@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v14.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v15.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -353,32 +353,29 @@
           // (baseColor + metallicRoughness + normal maps) instead of rebuilding it.
           // Only correct color space, kill unwanted emissive, pick up scene envMap,
           // and apply a subtle warm tonal lift so the texture reads richer.
-          // Clean lit PBR with the UV-mask-painted baseColor + per-body-part rough/metal map.
-          // The texture now has correct skin/suit/hair/shoes colors by region, so we just
-          // let MeshStandardMaterial render them with gentle shading. No env (would tint).
+          // Clean PBR with Meshy's authored baseColor + normalMap + metalRough
+          // (v15 was generated from a fresh Meshy run on your actual suit photo so
+          // the colors — brown skin + gray suit + dreads + pocket square + black
+          // shoes — are correct in the texture itself. No pixel manipulation needed.)
           root.traverse(o => {
             if(!o.isMesh) return;
             o.castShadow = true;
             o.receiveShadow = true;
             o.frustumCulled = false;
             const mats = Array.isArray(o.material) ? o.material : [o.material];
-            const first = mats[0];
-            const origMap = first?.map;
-            const origNormal = first?.normalMap;
-            const origRM = first?.roughnessMap || first?.metalnessMap;
-            if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.anisotropy = 16; origMap.needsUpdate = true; }
-            if(origNormal){ origNormal.colorSpace = T.NoColorSpace; origNormal.needsUpdate = true; }
-            if(origRM){ origRM.colorSpace = T.NoColorSpace; origRM.needsUpdate = true; }
-            o.material = new T.MeshStandardMaterial({
-              map: origMap,
-              normalMap: origNormal,
-              roughnessMap: origRM,
-              metalnessMap: origRM,
-              color: 0xffffff,
-              roughness: 1.0,       // multiplier - roughness map controls per-body-part
-              metalness: 1.0,       // multiplier - metalness map controls per-body-part
-              envMapIntensity: 0,
-              side: T.FrontSide
+            mats.forEach(m => {
+              if(!m) return;
+              if(m.map){ m.map.colorSpace = T.SRGBColorSpace; m.map.anisotropy = 16; m.map.needsUpdate = true; }
+              if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
+              if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
+              if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
+              if(m.emissive) m.emissive.setHex(0x000000);
+              m.emissiveIntensity = 0;
+              if(m.color) m.color.setHex(0xffffff);
+              m.envMap = null;
+              m.envMapIntensity = 0;
+              m.side = T.FrontSide;
+              m.needsUpdate = true;
             });
           });
           // ARM RIG DISABLED - marquis.glb has a confident pose (not T-pose)
@@ -416,7 +413,7 @@
           root.position.set(16, -bbox2.min.y + 1.0, 6);
           root.rotation.y = -Math.PI / 8;  // mostly face-on
           sc.add(root);
-          console.log(MARK, 'marquis-v14.glb loaded (UV-mask painted)');
+          console.log(MARK, 'marquis-v15.glb loaded (fresh Meshy, correct colors baked in)');
 
           // Premium two-tier plinth
           const base = new T.Mesh(
