@@ -369,7 +369,7 @@
           // Recompute to find how far below origin his feet sit; lift so feet at y=0
           const bbox2 = new T.Box3().setFromObject(root);
           const yOffset = -bbox2.min.y;
-          root.position.set(18, yOffset, 8);
+          root.position.set(16, yOffset, 6);
           root.rotation.y = -Math.PI/5;  // face angled toward chase cam
           sc.add(root);
           console.log(MARK, 'dreads.glb loaded; H=' + size.y.toFixed(1) + ' scale=' + scale.toFixed(2) + ' feetLift=' + yOffset.toFixed(2));
@@ -378,22 +378,22 @@
           const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
           const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
           const plinth = new T.Mesh(new T.CylinderGeometry(1.4, 1.55, 0.4, 24), plinthMat);
-          plinth.position.set(18, -0.3, 8); plinth.name = 'v3-start-plinth'; sc.add(plinth);
+          plinth.position.set(16, -0.3, 6); plinth.name = 'v3-start-plinth'; sc.add(plinth);
           const glow = new T.Mesh(new T.TorusGeometry(1.38, 0.08, 10, 48), glowMat);
-          glow.position.set(18, 0.04, 8); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
+          glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
 
           // Fill lights
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            const key = new T.SpotLight(0xfff0d6, 85, 60, Math.PI/4, 0.5, 1.1);
-            key.position.set(26, 10, 16); key.target.position.set(18, 3, 8);
+            const key = new T.SpotLight(0xfff0d6, 120, 60, Math.PI/4, 0.5, 1.1);
+            key.position.set(24, 10, 14); key.target.position.set(16, 3, 6);
             fillGrp.add(key); fillGrp.add(key.target);
-            const rim = new T.SpotLight(0x4df0e0, 50, 50, Math.PI/4, 0.5, 1.2);
-            rim.position.set(10, 9, 0); rim.target.position.set(18, 3, 8);
+            const rim = new T.SpotLight(0x4df0e0, 65, 50, Math.PI/4, 0.5, 1.2);
+            rim.position.set(8, 9, -4); rim.target.position.set(16, 3, 6);
             fillGrp.add(rim); fillGrp.add(rim.target);
-            const amb = new T.PointLight(0xffe6b0, 18, 24, 2);
-            amb.position.set(18, 1.5, 8);
+            const amb = new T.PointLight(0xffe6b0, 28, 24, 2);
+            amb.position.set(16, 1.5, 6);
             fillGrp.add(amb);
             sc.add(fillGrp);
           }
