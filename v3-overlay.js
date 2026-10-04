@@ -333,7 +333,16 @@
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
       if(window.__v3StatueLoading) return false;
-      if(!T.GLTFLoader){ /* loader not ready yet */ return false; }
+      // Lazy-load GLTFLoader if it isn't attached yet (script loaded before window.THREE existed)
+      if(!T.GLTFLoader){
+        if(window.__v3GLTFLoaderLoading) return false;
+        window.__v3GLTFLoaderLoading = true;
+        const sc0 = document.createElement('script');
+        sc0.src = 'GLTFLoader.js?v=2';
+        sc0.onload = () => { console.log(MARK, 'GLTFLoader re-attached:', !!T.GLTFLoader); };
+        document.head.appendChild(sc0);
+        return false;
+      }
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
