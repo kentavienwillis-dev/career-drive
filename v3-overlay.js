@@ -371,15 +371,13 @@
               if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
               if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
               if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
-              // Kill any baked emissive from the scan
-              if(m.emissive){ m.emissive.setHex(0x000000); }
-              m.emissiveIntensity = 0;
-              // Subtle warm tint lifts skin + fabric saturation without blowing out
-              if(m.color){ m.color.setHex(0xffffff); } // pure white — show original Meshy texture colors unchanged
-              // Photogrammetry scans benefit from slightly softer roughness so highlights sit on cloth
-              // Leave roughness/metalness EXACTLY as Meshy authored them — don't 'enhance'
-              // Pick up the scene HDR environment for subtle reflections / fill
-              if(envMap){ m.envMap = envMap; m.envMapIntensity = 0.55; } // mild env for subtle fill only
+              // SELF-ILLUMINATE from the baseColor so colored scene lights / env can't tint the suit.
+              m.emissiveMap = m.map;
+              if(m.emissive) m.emissive.setHex(0xffffff);
+              m.emissiveIntensity = 0.78;
+              if(m.color){ m.color.setHex(0xffffff); }
+              m.envMap = null;
+              m.envMapIntensity = 0;
               m.toneMapped = true;
               m.side = T.FrontSide;
               m.needsUpdate = true;
