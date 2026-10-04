@@ -333,85 +333,62 @@
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
 
-      // Find the race-driver mannequin that already lives in the scene
-      // (14 children, elevated, with pink/purple accents from its original materials).
-      // World pos approx (129, 6, -74).
-      let orig = null;
-      sc.traverse(o => {
-        if(orig) return;
-        if(o.type === 'Group' && o.children && o.children.length === 14){
-          const wp = new T.Vector3(); o.getWorldPosition(wp);
-          if(Math.abs(wp.x - 129) < 4 && wp.y > 3 && wp.y < 15 && Math.abs(wp.z + 74) < 6){
-            orig = o;
-          }
-        }
-      });
-      // Fallback: any 14-child group with pink + purple accent materials
-      if(!orig){
-        sc.traverse(o => {
-          if(orig) return;
-          if(o.type === 'Group' && o.children && o.children.length >= 10 && o.children.length <= 16){
-            let hasPink = false, hasPurple = false;
-            o.children.forEach(c => {
-              const col = c.material && c.material.color && c.material.color.getHexString();
-              if(col === 'ff3d7f') hasPink = true;
-              if(col === '7a5cff') hasPurple = true;
-            });
-            if(hasPink && hasPurple) orig = o;
-          }
-        });
-      }
-      if(!orig){ console.warn(MARK, 'race driver original not found'); return false; }
+      // Find the one and only named humanoid in the scene
+      const suit = sc.getObjectByName('suit-figure');
+      if(!suit){ return false; }
 
-      // Clone the mannequin WITH ALL ITS ORIGINAL MATERIALS (don't rebuild them)
-      const clone = orig.clone(true);
+      // The suit-figure group contains: pedestal meshes + 2 spot lights + ONE Group that is the
+      // actual humanoid (child size ~4x10.5x3.4). Clone the WHOLE suit-figure group so we get
+      // the figure, its pedestal, AND its original lights — exactly as it looks on the right.
+      const clone = suit.clone(true);
       clone.name = 'v3-start-statue';
-      // Original has local scale 21 (bakes world size ~21x). Shrink to ~6 units tall for the frame.
-      clone.scale.setScalar(6);
-      // Lift feet to ground: measure after scale
-      clone.position.set(16, 0, 6);
-      sc.updateMatrixWorld(true);
-      // Add a temp container to measure
-      const tmp = new T.Group(); tmp.add(clone); sc.add(tmp);
-      const b = new T.Box3().setFromObject(clone);
-      clone.position.y = -b.min.y;  // lift so feet at y=0
-      sc.add(clone); tmp.remove(clone); sc.remove(tmp);
 
-      // Face toward chase cam (slight angle)
+      // Original local scale is 21x. Scale down so suit-figure sits at ~7u tall in our frame.
+      // The group's intrinsic ground height is ~14. Scale 0.5 => 7u.
+      clone.scale.setScalar(0.5);
+
+      // Place at the new statue spot
+      clone.position.set(16, 0, 6);
+      // Face slightly toward the chase cam (default faces +Z, rotate so face angles toward -X)
       clone.rotation.y = -Math.PI / 5;
+
+      // Measure after transforms to lift feet to y=0
+      sc.add(clone);
+      sc.updateMatrixWorld(true);
+      const bbox = new T.Box3().setFromObject(clone);
+      clone.position.y = -bbox.min.y;
 
       clone.traverse(m => {
         if(m.isMesh){
           m.castShadow = true;
           m.receiveShadow = true;
           m.visible = true;
-          // DO NOT replace materials — keep the originals that have the correct colors
+          // KEEP original materials — they are what matches the scene
         }
       });
-      sc.add(clone);
-      console.log(MARK, 'race-driver cloned with original materials to', clone.position.toArray());
+      console.log(MARK, 'suit-figure cloned (keeping original materials) at', clone.position.toArray());
 
-      // Pedestal + glow halo
+      // Pedestal + glow halo (base platform under the figure)
       const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
       const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
-      const plinth = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.5, 24), plinthMat);
+      const plinth = new T.Mesh(new T.CylinderGeometry(2.5, 2.7, 0.5, 24), plinthMat);
       plinth.position.set(16, -0.25, 6); plinth.name = 'v3-start-plinth';
       sc.add(plinth);
-      const glow = new T.Mesh(new T.TorusGeometry(2.15, 0.11, 10, 48), glowMat);
+      const glow = new T.Mesh(new T.TorusGeometry(2.45, 0.12, 10, 48), glowMat);
       glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow';
       sc.add(glow);
 
-      // Fill lights — neutral white so the clone's original colors read true
+      // Neutral white fill lights so the clone reads with its true scene colors
       if(!sc.getObjectByName('v3c-statue-fill')){
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
-        const key = new T.SpotLight(0xffffff, 240, 32, Math.PI/3.5, 0.4, 1);
+        const key = new T.SpotLight(0xffffff, 220, 32, Math.PI/3.5, 0.4, 1);
         key.position.set(22, 12, 14); key.target.position.set(16, 4, 6);
         fillGrp.add(key); fillGrp.add(key.target);
-        const fl = new T.SpotLight(0xffffff, 110, 30, Math.PI/3.5, 0.5, 1);
+        const fl = new T.SpotLight(0xffffff, 100, 30, Math.PI/3.5, 0.5, 1);
         fl.position.set(10, 10, 12); fl.target.position.set(16, 4, 6);
         fillGrp.add(fl); fillGrp.add(fl.target);
-        const rim = new T.SpotLight(0xd0e4ff, 60, 25, Math.PI/4, 0.4, 1);
+        const rim = new T.SpotLight(0xd0e4ff, 55, 25, Math.PI/4, 0.4, 1);
         rim.position.set(18, 10, -2); rim.target.position.set(16, 5, 6);
         fillGrp.add(rim); fillGrp.add(rim.target);
         sc.add(fillGrp);
