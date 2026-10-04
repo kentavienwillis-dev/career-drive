@@ -344,7 +344,8 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('marquis.glb?v=4', gltf => {
+      // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
+      const startLoad = () => loader.load('marquis.glb?v=5', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -463,6 +464,21 @@
         console.warn(MARK, 'GLB load failed:', err && err.message);
         window.__v3StatueLoading = false;
       });
+      // Load MeshoptDecoder, then start the GLB load
+      if(window.__v3MeshoptReady){ startLoad(); }
+      else {
+        import('https://cdn.jsdelivr.net/npm/[email protected]/meshopt_decoder.module.js').then(async (mod) => {
+          const dec = mod.MeshoptDecoder;
+          await dec.ready;
+          loader.setMeshoptDecoder(dec);
+          window.__v3MeshoptReady = true;
+          console.log(MARK, 'MeshoptDecoder ready; loading marquis.glb');
+          startLoad();
+        }).catch(e => {
+          console.warn(MARK, 'MeshoptDecoder load failed, trying direct load:', e.message);
+          startLoad();
+        });
+      }
       return true;
     }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
   }
