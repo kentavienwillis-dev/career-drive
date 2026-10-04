@@ -227,14 +227,12 @@
 
   function createBillboardPlane(width, height, texture, pos, rotY){
     const T = window.THREE;
-    const mat = new T.MeshStandardMaterial({
+    if(texture) texture.needsUpdate = true;
+    const mat = new T.MeshBasicMaterial({
       map: texture,
-      emissive: 0xffffff,
-      emissiveMap: texture,
-      emissiveIntensity: 1.6,
-      roughness: 0.55,
-      metalness: 0.0,
-      side: T.DoubleSide
+      side: T.DoubleSide,
+      transparent: false,
+      toneMapped: false
     });
     const geo = new T.PlaneGeometry(width, height);
     const mesh = new T.Mesh(geo, mat);
@@ -340,5 +338,5 @@
   }, 500);
 
   requestAnimationFrame(tickHud);
-  console.log(MARK, 'v3 overlay bootstrapped');
+  console.log(MARK, 'v3b overlay bootstrapped');
 })();
