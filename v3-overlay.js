@@ -357,6 +357,11 @@
           // (v15 was generated from a fresh Meshy run on your actual suit photo so
           // the colors — brown skin + gray suit + dreads + pocket square + black
           // shoes — are correct in the texture itself. No pixel manipulation needed.)
+          // Standard PBR material — makes the figure read as a SOLID real-world
+          // human, not a glowing hologram. No emissive, no self-illumination.
+          // The figure integrates naturally with scene fog, tone mapping, and
+          // environment reflections just like any other game object.
+          const scEnv = window.__scene && window.__scene.environment;
           root.traverse(o => {
             if(!o.isMesh) return;
             o.castShadow = true;
@@ -365,19 +370,32 @@
             const mats = Array.isArray(o.material) ? o.material : [o.material];
             mats.forEach(m => {
               if(!m) return;
+              // Texture color spaces
               if(m.map){ m.map.colorSpace = T.SRGBColorSpace; m.map.anisotropy = 16; m.map.needsUpdate = true; }
               if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
               if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
               if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
-              // SELF-ILLUMINATE from baseColor: scene teal/pink lights can't tint the figure
-              m.emissiveMap = m.map;
-              if(m.emissive) m.emissive.setHex(0xffffff);
-              m.emissiveIntensity = 0.3;
+              // KILL any emissive/self-illumination — this is what created the hologram look
+              m.emissiveMap = null;
+              if(m.emissive) m.emissive.setHex(0x000000);
+              m.emissiveIntensity = 0;
+              // Pure diffuse color multiplier
               if(m.color) m.color.setHex(0xffffff);
-              m.envMap = null;
-              m.envMapIntensity = 0;
-              m.toneMapped = false;   // bypass scene tone mapping (which can tint)
-              m.fog = false;          // bypass scene fog (which is cold blue-gray)
+              // Scene env map at moderate intensity so figure gets realistic reflections
+              m.envMap = scEnv || null;
+              m.envMapIntensity = scEnv ? 0.6 : 0;
+              // Proper photoreal matte-wool-suit roughness, zero metalness
+              m.roughness = 0.85;
+              m.metalness = 0.02;
+              // Full opacity, no transparency, correct culling
+              m.transparent = false;
+              m.opacity = 1.0;
+              m.depthWrite = true;
+              m.depthTest = true;
+              m.alphaTest = 0;
+              // Integrate with scene — tone map and respect fog
+              m.toneMapped = true;
+              m.fog = true;
               m.side = T.FrontSide;
               m.needsUpdate = true;
             });
@@ -417,7 +435,7 @@
           root.position.set(16, -bbox2.min.y + 1.0, 6);
           root.rotation.y = -Math.PI / 8;  // mostly face-on
           sc.add(root);
-          console.log(MARK, 'marquis-v15.glb loaded (fresh Meshy, correct colors baked in)');
+          console.log(MARK, 'marquis-v16.glb loaded (clean solid PBR, no hologram)');
 
           // Premium two-tier plinth
           const base = new T.Mesh(
@@ -476,25 +494,45 @@
           nameplate.name = 'v3-start-nameplate';
           sc.add(nameplate);
 
-          // Studio lighting rig for the statue: strong neutral key + warm fill + soft hemi
-          // (local hemi gives flat uniform diffuse so the suit reads as true gray and
-          // nearby colored point lights can't dominate).
+          // Studio-matched neutral lighting at the statue so the figure reads true.
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // KEY — warm-neutral above-right
-            const key = new T.PointLight(0xffffff, 180, 14, 1.1);
-            key.position.set(18, 9, 8);
+            // KEY — bright neutral white, high-right
+            const key = new T.PointLight(0xffffff, 240, 16, 1.0);
+            key.position.set(18, 10, 9);
             fillGrp.add(key);
             // FILL — soft warm from left
-            const fill = new T.PointLight(0xfff5e8, 90, 12, 1.3);
-            fill.position.set(14, 7, 7);
+            const fill = new T.PointLight(0xfff0d8, 120, 13, 1.2);
+            fill.position.set(13, 7, 8);
             fillGrp.add(fill);
-            // LOCAL HEMI — isolate from scene colored lights
-            const hemi = new T.HemisphereLight(0xf0f4f8, 0x1a1e26, 0.6);
-            hemi.position.set(16, 8, 6);
-            fillGrp.add(hemi);
+            // AMBIENT POINT — tight local hemi-ish fill so shadows don't go pitch
+            const amb = new T.PointLight(0xffffff, 40, 10, 1.3);
+            amb.position.set(16, 5, 6);
+            fillGrp.add(amb);
             sc.add(fillGrp);
+            // Dim nearby colored scene PointLights that fall within our statue's zone
+            // so they don't bleed teal/pink/blue tint onto the suit.
+            try {
+              const dimRange = 20;
+              const target = new T.Vector3(16, 5, 6);
+              sc.traverse(obj => {
+                if(!obj.isLight) return;
+                if(obj.parent && obj.parent.name === 'v3c-statue-fill') return;
+                if(obj.type !== 'PointLight' && obj.type !== 'SpotLight') return;
+                if(!obj.color || obj.intensity < 100) return;
+                const d = obj.position.distanceTo(target);
+                if(d > dimRange) return;
+                // if the light's color is highly saturated (teal/pink/blue), dim it near us
+                const c = obj.color;
+                const mx = Math.max(c.r, c.g, c.b), mn = Math.min(c.r, c.g, c.b);
+                const sat = mx - mn;
+                if(sat > 0.35) {
+                  obj.userData.v3OrigIntensity = obj.intensity;
+                  obj.intensity *= 0.25;
+                }
+              });
+            } catch(e) { console.warn(MARK, 'light tamer:', e.message); }
           }
         }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
       }, undefined, err => {
