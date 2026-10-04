@@ -367,7 +367,7 @@
       clone.name = 'v3-start-statue';
       clone.position.set(22, 0, -4);
       clone.rotation.y = Math.PI * 0.9;
-      clone.scale.set(1.0, 1.0, 1.0);
+      clone.scale.setScalar(15); // original is scale 21; shrink a bit to fit the start
       clone.traverse(m => {
         if(m.isMesh){
           m.castShadow = true;
