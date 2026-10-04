@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v11.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v12.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -353,20 +353,28 @@
           // (baseColor + metallicRoughness + normal maps) instead of rebuilding it.
           // Only correct color space, kill unwanted emissive, pick up scene envMap,
           // and apply a subtle warm tonal lift so the texture reads richer.
-          // UNLIT material: convert every mesh to MeshBasicMaterial so NO scene
-          // lighting, NO env reflections, NO fog color can ever tint the model.
-          // The (desaturated grayscale) baseColor map is the ONLY source of color.
+          // Lit PBR material — texture has already been color-corrected to show
+          // brown skin, dark hair, and gray suit cleanly. Use MeshStandardMaterial
+          // with map + normalMap + minimal env so lighting adds subtle shading on
+          // top of the correct colors.
           root.traverse(o => {
             if(!o.isMesh) return;
-            o.castShadow = false;    // unlit material doesn't need shadow casting
-            o.receiveShadow = false;
+            o.castShadow = true;
+            o.receiveShadow = true;
             o.frustumCulled = false;
-            const origMap = Array.isArray(o.material) ? o.material[0]?.map : o.material?.map;
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            const first = mats[0];
+            const origMap = first?.map;
+            const origNormal = first?.normalMap;
             if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.anisotropy = 16; origMap.needsUpdate = true; }
-            o.material = new T.MeshBasicMaterial({
+            if(origNormal){ origNormal.colorSpace = T.NoColorSpace; origNormal.needsUpdate = true; }
+            o.material = new T.MeshStandardMaterial({
               map: origMap,
+              normalMap: origNormal,
               color: 0xffffff,
-              toneMapped: false,
+              roughness: 0.75,
+              metalness: 0.02,
+              envMapIntensity: 0,  // no env tinting
               side: T.FrontSide
             });
           });
