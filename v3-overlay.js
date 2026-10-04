@@ -362,7 +362,7 @@
                 color: 0xffffff,
                 emissive: new T.Color(0x000000),
                 emissiveIntensity: 0,
-                roughness: 0.65,
+                roughness: 0.55,
                 metalness: 0.0,
                 side: T.DoubleSide
               });
@@ -429,9 +429,13 @@
             const key = new T.SpotLight(0xfff8ec, 300, 32, Math.PI/3.5, 0.4, 1);
             key.position.set(rx+5, ry+9, rz+9); key.target.position.set(rx, ry+5, rz);
             fillGrp.add(key); fillGrp.add(key.target);
-            const fl = new T.SpotLight(0xffffff, 110, 30, Math.PI/3.5, 0.5, 1);
-            fl.position.set(rx-6, ry+8, rz+8); fl.target.position.set(rx, ry+3, rz);
+            const fl = new T.SpotLight(0xffffff, 130, 30, Math.PI/3.5, 0.5, 1);
+            fl.position.set(rx-6, ry+8, rz+8); fl.target.position.set(rx, ry+4, rz);
             fillGrp.add(fl); fillGrp.add(fl.target);
+            // Soft point light at face level for skin tone
+            const face = new T.PointLight(0xfff6e4, 12, 8, 2);
+            face.position.set(rx+1, ry+8, rz+4);
+            fillGrp.add(face);
             const rim = new T.SpotLight(0xd0e4ff, 65, 25, Math.PI/4, 0.4, 1);
             rim.position.set(rx+2, ry+10, rz-6); rim.target.position.set(rx, ry+5, rz);
             fillGrp.add(rim); fillGrp.add(rim.target);
