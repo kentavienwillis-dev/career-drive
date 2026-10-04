@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v13.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v14.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -353,10 +353,9 @@
           // (baseColor + metallicRoughness + normal maps) instead of rebuilding it.
           // Only correct color space, kill unwanted emissive, pick up scene envMap,
           // and apply a subtle warm tonal lift so the texture reads richer.
-          // Lit PBR material — texture has already been color-corrected to show
-          // brown skin, dark hair, and gray suit cleanly. Use MeshStandardMaterial
-          // with map + normalMap + minimal env so lighting adds subtle shading on
-          // top of the correct colors.
+          // Clean lit PBR with the UV-mask-painted baseColor + per-body-part rough/metal map.
+          // The texture now has correct skin/suit/hair/shoes colors by region, so we just
+          // let MeshStandardMaterial render them with gentle shading. No env (would tint).
           root.traverse(o => {
             if(!o.isMesh) return;
             o.castShadow = true;
@@ -366,15 +365,19 @@
             const first = mats[0];
             const origMap = first?.map;
             const origNormal = first?.normalMap;
+            const origRM = first?.roughnessMap || first?.metalnessMap;
             if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.anisotropy = 16; origMap.needsUpdate = true; }
             if(origNormal){ origNormal.colorSpace = T.NoColorSpace; origNormal.needsUpdate = true; }
+            if(origRM){ origRM.colorSpace = T.NoColorSpace; origRM.needsUpdate = true; }
             o.material = new T.MeshStandardMaterial({
               map: origMap,
               normalMap: origNormal,
+              roughnessMap: origRM,
+              metalnessMap: origRM,
               color: 0xffffff,
-              roughness: 0.95,
-              metalness: 0.02,
-              envMapIntensity: 0,  // no env tinting
+              roughness: 1.0,       // multiplier - roughness map controls per-body-part
+              metalness: 1.0,       // multiplier - metalness map controls per-body-part
+              envMapIntensity: 0,
               side: T.FrontSide
             });
           });
@@ -404,51 +407,92 @@
           });
 
           } // --- end disabled arm rig ---
-          // Scale a bit taller (7.5u) for a stronger silhouette from the splash camera
+          // Scale to 8.5u — hero size
           const bbox = new T.Box3().setFromObject(root);
           const size = new T.Vector3(); bbox.getSize(size);
-          root.scale.setScalar(size.y > 0.01 ? (7.5 / size.y) : 1);
+          root.scale.setScalar(size.y > 0.01 ? (8.5 / size.y) : 1);
           const bbox2 = new T.Box3().setFromObject(root);
-          // Stance: face slightly toward the chase camera's natural approach angle
-          root.position.set(16, -bbox2.min.y + 0.9, 6); // +0.9 = raised plinth top
-          root.rotation.y = -Math.PI / 7;              // more face-on, less turned
+          // Position: raised 1.0u onto plinth, face slightly toward approaching car
+          root.position.set(16, -bbox2.min.y + 1.0, 6);
+          root.rotation.y = -Math.PI / 8;  // mostly face-on
           sc.add(root);
-          console.log(MARK, 'marquis.glb loaded (PBR preserved, warm-lifted)');
+          console.log(MARK, 'marquis-v14.glb loaded (UV-mask painted)');
 
-          // Premium two-tier plinth: dark matte base + brushed metal cap + teal halo
+          // Premium two-tier plinth
           const base = new T.Mesh(
-            new T.CylinderGeometry(2.5, 2.7, 0.7, 32),
-            new T.MeshStandardMaterial({color: 0x14181f, roughness: 0.95, metalness: 0.02, envMapIntensity: 0.6})
+            new T.CylinderGeometry(2.6, 2.9, 0.75, 32),
+            new T.MeshStandardMaterial({color: 0x12161c, roughness: 0.95, metalness: 0.02, envMapIntensity: 0.6})
           );
-          base.position.set(16, 0.35, 6); base.name = 'v3-start-plinth-base';
+          base.position.set(16, 0.375, 6); base.name = 'v3-start-plinth-base';
           base.receiveShadow = true; sc.add(base);
           const cap = new T.Mesh(
-            new T.CylinderGeometry(2.25, 2.4, 0.22, 48),
-            new T.MeshStandardMaterial({color: 0x2a2f3a, roughness: 0.35, metalness: 0.85, envMapIntensity: 1.2})
+            new T.CylinderGeometry(2.35, 2.5, 0.25, 48),
+            new T.MeshStandardMaterial({color: 0x242933, roughness: 0.35, metalness: 0.85, envMapIntensity: 1.2})
           );
-          cap.position.set(16, 0.81, 6); cap.name = 'v3-start-plinth-cap';
+          cap.position.set(16, 0.875, 6); cap.name = 'v3-start-plinth-cap';
           cap.receiveShadow = true; sc.add(cap);
-          const glow = new T.Mesh(
-            new T.TorusGeometry(2.25, 0.09, 12, 64),
-            new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.8, toneMapped: false})
+          // Animated teal halo
+          const haloMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.8, toneMapped: false});
+          const glow = new T.Mesh(new T.TorusGeometry(2.35, 0.10, 12, 64), haloMat);
+          glow.position.set(16, 1.02, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
+          // Pulse the halo
+          const pulseStart = performance.now();
+          const pulse = () => {
+            const t = (performance.now() - pulseStart) / 1000;
+            haloMat.emissiveIntensity = 1.5 + Math.sin(t * 1.8) * 0.5;
+            requestAnimationFrame(pulse);
+          };
+          pulse();
+          // Floor shadow decal (dark circle on cap top)
+          const shadow = new T.Mesh(
+            new T.CircleGeometry(0.6, 24),
+            new T.MeshBasicMaterial({color: 0x000000, transparent: true, opacity: 0.4, side: T.DoubleSide})
           );
-          glow.position.set(16, 0.94, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
+          shadow.rotation.x = -Math.PI / 2;
+          shadow.position.set(16, 1.015, 6);
+          shadow.name = 'v3-start-shadow';
+          sc.add(shadow);
+          // Nameplate on plinth front
+          const npCanvas = document.createElement('canvas');
+          npCanvas.width = 512; npCanvas.height = 128;
+          const npCtx = npCanvas.getContext('2d');
+          npCtx.fillStyle = '#0a0d12';
+          npCtx.fillRect(0, 0, 512, 128);
+          npCtx.fillStyle = '#4df0e0';
+          npCtx.font = 'bold 48px sans-serif';
+          npCtx.textAlign = 'center';
+          npCtx.fillText('KENTAVIEN WILLIS', 256, 70);
+          npCtx.font = '22px sans-serif';
+          npCtx.fillStyle = '#8aa3b0';
+          npCtx.fillText('SYSTEMS ADMINISTRATOR', 256, 102);
+          const npTex = new T.CanvasTexture(npCanvas);
+          npTex.colorSpace = T.SRGBColorSpace;
+          const nameplate = new T.Mesh(
+            new T.PlaneGeometry(2.0, 0.5),
+            new T.MeshBasicMaterial({map: npTex, toneMapped: false})
+          );
+          nameplate.position.set(16, 0.4, 7.3);
+          nameplate.name = 'v3-start-nameplate';
+          sc.add(nameplate);
 
-          // MINIMAL lighting rig — just a close bright PointLight to flood the statue
-          // with white and overpower nearby colored scene lights. Fewer lights = fewer
-          // shader permutations = faster boot. The PointLight at near-zero distance
-          // with intensity 400 is >> than scene lights at this distance.
+          // Studio lighting rig for the statue: strong neutral key + warm fill + soft hemi
+          // (local hemi gives flat uniform diffuse so the suit reads as true gray and
+          // nearby colored point lights can't dominate).
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // Primary white flood 2m from statue
-            const flood = new T.PointLight(0xffffff, 110, 15, 1.3);
-            flood.position.set(17, 6, 8);
-            fillGrp.add(flood);
-            // Secondary bounce
-            const bounce = new T.PointLight(0xfff5e8, 50, 12, 1.5);
-            bounce.position.set(14, 8, 7);
-            fillGrp.add(bounce);
+            // KEY — warm-neutral above-right
+            const key = new T.PointLight(0xffffff, 180, 14, 1.1);
+            key.position.set(18, 9, 8);
+            fillGrp.add(key);
+            // FILL — soft warm from left
+            const fill = new T.PointLight(0xfff5e8, 90, 12, 1.3);
+            fill.position.set(14, 7, 7);
+            fillGrp.add(fill);
+            // LOCAL HEMI — isolate from scene colored lights
+            const hemi = new T.HemisphereLight(0xf0f4f8, 0x1a1e26, 0.6);
+            hemi.position.set(16, 8, 6);
+            fillGrp.add(hemi);
             sc.add(fillGrp);
           }
         }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
