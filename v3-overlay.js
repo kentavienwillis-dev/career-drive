@@ -344,7 +344,7 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('marquis.glb?v=3', gltf => {
+      loader.load('marquis.glb?v=4', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -440,30 +440,22 @@
           );
           glow.position.set(16, 0.94, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
 
-          // Studio 3-point + cold rim + face catch — tuned for photoreal skin & fabric
+          // Pure NEUTRAL WHITE lighting so the Meshy texture colors render exactly as authored
+          // (no colored rim/fill tinting the suit/skin away from original)
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // KEY (warm, high) — primary modeling light from camera-right
-            const key = new T.SpotLight(0xfff2d8, 360, 34, Math.PI/3.6, 0.45, 1.2);
-            key.position.set(23, 14, 15); key.target.position.set(16, 5, 6);
+            // KEY — bright neutral white from camera-right-up (primary modeling)
+            const key = new T.SpotLight(0xffffff, 420, 36, Math.PI/3.4, 0.5, 1.1);
+            key.position.set(22, 14, 14); key.target.position.set(16, 5, 6);
             fillGrp.add(key); fillGrp.add(key.target);
-            // FILL (neutral, low, soft) — camera-left shadow lift
-            const fl = new T.SpotLight(0xeef2ff, 140, 32, Math.PI/3.2, 0.55, 1);
-            fl.position.set(9, 9, 13); fl.target.position.set(16, 4, 6);
+            // FILL — soft neutral white from camera-left (shadow lift)
+            const fl = new T.SpotLight(0xffffff, 180, 32, Math.PI/3.2, 0.6, 1);
+            fl.position.set(10, 10, 13); fl.target.position.set(16, 4, 6);
             fillGrp.add(fl); fillGrp.add(fl.target);
-            // RIM (cool blue, behind) — silhouette separation against city backdrop
-            const rim = new T.SpotLight(0x9ccaff, 110, 30, Math.PI/4.2, 0.35, 1);
-            rim.position.set(19, 12, -3); rim.target.position.set(16, 5, 6);
-            fillGrp.add(rim); fillGrp.add(rim.target);
-            // FACE catch — tight warm point just above eye level for a highlight in the eyes
-            const face = new T.PointLight(0xfff0d8, 24, 11, 2);
-            face.position.set(17, 10.2, 10.5);
-            fillGrp.add(face);
-            // BOUNCE from below — simulate ground kick off the brushed-metal cap
-            const bounce = new T.PointLight(0x7fd4e8, 10, 6, 2);
-            bounce.position.set(16, 1.2, 7.5);
-            fillGrp.add(bounce);
+            // AMBIENT — a touch so shadow areas never go pitch black
+            const amb = new T.AmbientLight(0xffffff, 0.35);
+            fillGrp.add(amb);
             sc.add(fillGrp);
           }
         }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
