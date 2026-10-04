@@ -312,12 +312,62 @@
     return true;
   }
 
+  function hideStartGantry(){
+    try{
+      const sc = window.__scene;
+      if(!sc) return false;
+      let hid = 0;
+      sc.traverse(o => {
+        if(o && o.name === 'start-gantry' && o.visible){
+          o.visible = false; hid++;
+        }
+      });
+      if(hid) console.log(MARK, 'start-gantry hidden ×', hid);
+      return hid > 0;
+    }catch(e){ return false; }
+  }
+
+  function positionStartStatue(){
+    try{
+      const T = window.THREE, sc = window.__scene;
+      if(!T || !sc) return false;
+      const figs = window.__figures ? window.__figures() : [];
+      const statue0 = figs.find(f => f.n === 'statue-0');
+      if(!statue0 || !statue0.g) return false;
+
+      // Target: visible from the car at the start (car at Z˜19.6, looking toward -Z)
+      // Old game placement: ahead of car on the right-hand side, close enough to see immediately.
+      // Current v2 position: (33.4, 0, -30) — too far right and too far forward
+      // Move to (18, 0, 0) — right shoulder, almost beside the car at start
+      const target = new T.Vector3(18, 0, 0);
+      const cur = new T.Vector3();
+      statue0.g.getWorldPosition(cur);
+      // Only move once (idempotent); mark we've already repositioned
+      if(statue0.g.userData.__v3cRepositioned) return true;
+      statue0.g.position.set(target.x, target.y, target.z);
+      // Face the road (yaw toward +X ? no, face the car coming through: look toward -Z slightly)
+      statue0.g.rotation.y = Math.PI * 0.9;  // ~162° — mostly facing the oncoming car
+      statue0.g.userData.__v3cRepositioned = true;
+      console.log(MARK, 'statue-0 repositioned to', target.toArray(), 'from', cur.toArray());
+
+      // Boost nearby fill lights
+      sc.traverse(o => {
+        if(o && o.isLight && o.name && /start-statue-fill|statue-streetlight/i.test(o.name)){
+          o.intensity = Math.max(o.intensity, 24);
+        }
+      });
+      return true;
+    }catch(e){ console.warn(MARK, 'positionStartStatue:', e.message); return false; }
+  }
+
   function tryInstall(){
     try{
       buildHud();
       boostGrade();
       spawnBillboards();
       addLicensePlate();
+      hideStartGantry();
+      positionStartStatue();
     }catch(e){
       console.warn(MARK, 'install step failed:', e.message);
     }
@@ -338,5 +388,5 @@
   }, 500);
 
   requestAnimationFrame(tickHud);
-  console.log(MARK, 'v3b overlay bootstrapped');
+  console.log(MARK, 'v3c overlay bootstrapped');
 })();
