@@ -376,9 +376,9 @@
             root.traverse(o => {
               if(!o.isMesh) return;
               const pos = o.geometry.attributes.position;
-              const SHOULDER_X = 0.0025, SHOULDER_Y = 0.0012;
-              const BLEND_IN = 0.0020, BLEND_OUT = 0.0030;
-              const ARM_ANGLE = -Math.PI * 0.48;  // ~86 degrees: arms down to sides
+              const SHOULDER_X = 0.0022, SHOULDER_Y = 0.0014;
+              const BLEND_IN = 0.0018, BLEND_OUT = 0.0028;
+              const ARM_ANGLE = -Math.PI * 0.42;  // 76deg: arms hang slightly outward for natural stance  // ~86 degrees: arms down to sides
               for(let i = 0; i < pos.count; i++){
                 const ox = pos.getX(i), oy = pos.getY(i), oz = pos.getZ(i);
                 const absX = Math.abs(ox);
