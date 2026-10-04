@@ -372,8 +372,8 @@
               // SELF-ILLUMINATE from baseColor: scene teal/pink lights can't tint the figure
               m.emissiveMap = m.map;
               if(m.emissive) m.emissive.setHex(0xffffff);
-              m.emissiveIntensity = 0.9;
-              if(m.color) m.color.setHex(0xffffff);
+              m.emissiveIntensity = 1.0;
+              if(m.color) m.color.setHex(0x000000);  // kill diffuse so only emissive renders
               m.envMap = null;
               m.envMapIntensity = 0;
               m.toneMapped = false;   // bypass scene tone mapping (which can tint)
