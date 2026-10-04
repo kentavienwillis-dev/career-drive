@@ -343,11 +343,11 @@
       const cur = new T.Vector3();
       statue0.g.getWorldPosition(cur);
       // Only move once (idempotent); mark we've already repositioned
-      if(statue0.g.userData.__v3cRepositioned) return true;
+      if(statue0.g.userData.__v3eRepositioned) return true;
       statue0.g.position.set(target.x, target.y, target.z);
       // Face the road (yaw toward +X ? no, face the car coming through: look toward -Z slightly)
       statue0.g.rotation.y = Math.PI * 0.9;  // ~162° — mostly facing the oncoming car
-      statue0.g.userData.__v3cRepositioned = true;
+      statue0.g.userData.__v3eRepositioned = true;
       console.log(MARK, 'statue-0 repositioned to', target.toArray(), 'from', cur.toArray());
 
       // Boost any existing fill lights
@@ -362,18 +362,17 @@
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
         // Key (warm, front-right of statue)
-        const key = new T.SpotLight(0xfff0d6, 40, 60, Math.PI/5, 0.5, 1.2);
-        key.position.set(28, 22, 10);
-        key.target.position.set(18, 12, 0);
+        // Statue center ˜ (10, 13, -2)
+        const key = new T.SpotLight(0xfff0d6, 55, 60, Math.PI/5, 0.5, 1.2);
+        key.position.set(20, 22, 8);
+        key.target.position.set(10, 12, -2);
         fillGrp.add(key); fillGrp.add(key.target);
-        // Rim (cool teal, from behind-left)
-        const rim = new T.SpotLight(0x4df0e0, 24, 50, Math.PI/4.5, 0.6, 1.3);
-        rim.position.set(6, 20, -8);
-        rim.target.position.set(18, 12, 0);
+        const rim = new T.SpotLight(0x4df0e0, 32, 50, Math.PI/4.5, 0.6, 1.3);
+        rim.position.set(-2, 20, -10);
+        rim.target.position.set(10, 12, -2);
         fillGrp.add(rim); fillGrp.add(rim.target);
-        // Soft ground ambient blob (point light, falls off fast)
-        const amb = new T.PointLight(0xffe6b0, 8, 24, 2);
-        amb.position.set(18, 2, 0);
+        const amb = new T.PointLight(0xffe6b0, 12, 24, 2);
+        amb.position.set(10, 2, -2);
         fillGrp.add(amb);
         sc.add(fillGrp);
         console.log(MARK, 'statue fill lights spawned (3 lights)');
@@ -410,5 +409,5 @@
   }, 500);
 
   requestAnimationFrame(tickHud);
-  console.log(MARK, 'v3d overlay bootstrapped');
+  console.log(MARK, 'v3e overlay bootstrapped');
 })();
