@@ -346,10 +346,66 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('racer.glb?v=1', gltf => {
+      loader.load('hero.glb?v=1', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
+
+          // Play Mixamo idle animation at frame 0 to get the proper rigged pose
+          if(gltf.animations && gltf.animations.length){
+            const mixer = new T.AnimationMixer(root);
+            const action = mixer.clipAction(gltf.animations[0]);
+            action.play();
+            mixer.update(0);  // force frame 0 pose
+            root.userData.__v3Mixer = mixer;
+            console.log(MARK, 'applied Mixamo idle pose');
+          }
+
+          // Vertex-color by region to match the SUPER RACING photo (model has no UVs)
+          root.updateMatrixWorld(true);
+          root.traverse(o => {
+            if(!o.isMesh || !o.geometry.attributes.position) return;
+            const pos = o.geometry.attributes.position;
+            // Measure world Y range to find body regions
+            const T2 = T;
+            const bbox = new T2.Box3().setFromObject(o);
+            const yMin = bbox.min.y, yMax = bbox.max.y, h = yMax - yMin;
+            // Build world-space Y for each vertex to color correctly after rigging
+            const wPos = new T2.Vector3();
+            const matWorld = o.matrixWorld;
+            const colors = new Float32Array(pos.count * 3);
+            const SKIN = new T2.Color(0x6b4a35);
+            const HAIR = new T2.Color(0x1a1310);
+            const JACKET_BLACK = new T2.Color(0x0a0a0c);
+            const WHITE_BAND = new T2.Color(0xeaeaea);
+            const PANTS = new T2.Color(0x08080a);
+            const SHOES = new T2.Color(0x000000);
+            const SHOE_GOLD = new T2.Color(0xc49a3a);
+            for(let i = 0; i < pos.count; i++){
+              wPos.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(matWorld);
+              const t = (wPos.y - yMin) / h;  // 0 at feet, 1 at head top
+              let c;
+              if(t > 0.92){ c = HAIR; }
+              else if(t > 0.82){ c = SKIN; }
+              else if(t > 0.78){ c = SKIN; }  // neck
+              else if(t > 0.60){
+                // Upper torso: white band at 0.65-0.70, black elsewhere
+                c = (t > 0.63 && t < 0.70) ? WHITE_BAND : JACKET_BLACK;
+              }
+              else if(t > 0.08){ c = PANTS; }
+              else if(t > 0.03){ c = SHOES; }
+              else { c = SHOE_GOLD; }
+              colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+            }
+            o.geometry.setAttribute('color', new T2.BufferAttribute(colors, 3));
+            o.material = new T2.MeshStandardMaterial({
+              vertexColors: true,
+              color: 0xffffff,
+              roughness: 0.55,
+              metalness: 0.1,
+              skinning: !!o.isSkinnedMesh
+            });
+          });
           root.traverse(o => {
             if(o.isMesh){
               o.castShadow = true;
@@ -381,7 +437,7 @@
           root.position.set(16, yOffset, 6);
           root.rotation.y = -Math.PI/5;  // face angled toward chase cam
           // Vertex-level rigging DISABLED for v1 statue.glb (not a Meshy T-pose; already sculpted)
-          try{
+          if(false) try{
             root.traverse(o => {
               if(!o.isMesh) return;
               const pos = o.geometry.attributes.position;
