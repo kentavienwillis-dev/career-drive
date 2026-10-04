@@ -455,8 +455,8 @@
       // POSITION, SCALE, ROTATION
       // Rotation: statue naturally faces +Z (face toward +Z). Set rotation.y so the
       // face points toward the camera at the start (camera is at +Z looking -Z).
-      root.position.set(16, 0, 10);
-      root.scale.setScalar(1.0);  // model is already drawn at human scale (~8u tall)
+      root.position.set(14, 0, -2);
+      root.scale.setScalar(0.75);  // model is already drawn at human scale (~8u tall)
       root.rotation.y = Math.PI;  // face toward -Z = TOWARD camera at +Z? no: default +Z face, Math.PI flips to -Z. We want +Z, so 0.
       // Actually: default face dir is +Z. We want face to look toward camera at +Z.
       // That means the statue stands with face pointing +Z — so rotation.y = 0.
@@ -469,13 +469,13 @@
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
         const key = new T.SpotLight(0xfff0d6, 60, 50, Math.PI/4, 0.5, 1.1);
-        key.position.set(24, 16, 20); key.target.position.set(16, 5, 10);
+        key.position.set(22, 14, 8); key.target.position.set(14, 4, -2);
         fillGrp.add(key); fillGrp.add(key.target);
         const rim = new T.SpotLight(0x4df0e0, 32, 40, Math.PI/4, 0.5, 1.2);
-        rim.position.set(8, 15, 2); rim.target.position.set(16, 5, 10);
+        rim.position.set(6, 13, -10); rim.target.position.set(14, 4, -2);
         fillGrp.add(rim); fillGrp.add(rim.target);
         const amb = new T.PointLight(0xffe6b0, 12, 20, 2);
-        amb.position.set(16, 2, 10);
+        amb.position.set(14, 2, -2);
         fillGrp.add(amb);
         sc.add(fillGrp);
       }
