@@ -517,8 +517,9 @@
       root.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; }});
 
       // Place at the start — right-shoulder, slightly ahead of the car
-      root.position.set(14, 0, 6);
-      root.rotation.y = Math.PI * 0.85;  // face oncoming car
+      root.position.set(22, 0, -4);
+      root.scale.set(0.85, 0.85, 0.85);
+      root.rotation.y = Math.PI * 0.9;  // face oncoming car
       sc.add(root);
       console.log(MARK, 'race-driver statue built and placed at', root.position.toArray());
 
@@ -527,13 +528,13 @@
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
         const key = new T.SpotLight(0xfff0d6, 85, 70, Math.PI/4, 0.5, 1.1);
-        key.position.set(26, 24, 14); key.target.position.set(14, 10, 6);
+        key.position.set(34, 24, 4); key.target.position.set(22, 9, -4);
         fillGrp.add(key); fillGrp.add(key.target);
         const rim = new T.SpotLight(0x4df0e0, 48, 60, Math.PI/4, 0.5, 1.2);
-        rim.position.set(2, 22, -4); rim.target.position.set(14, 10, 6);
+        rim.position.set(10, 22, -16); rim.target.position.set(22, 9, -4);
         fillGrp.add(rim); fillGrp.add(rim.target);
         const amb = new T.PointLight(0xffe6b0, 18, 28, 2);
-        amb.position.set(14, 2, 6);
+        amb.position.set(22, 2, -4);
         fillGrp.add(amb);
         sc.add(fillGrp);
         console.log(MARK, 'statue fill lights spawned');
