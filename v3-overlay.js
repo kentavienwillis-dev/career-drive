@@ -333,81 +333,149 @@
       if(!T || !sc) return false;
       if(sc.getObjectByName('v3-start-statue')) return true;
 
-      // Find the race-driver mannequin that already lives in the scene
-      // (dark jacket w/ pink + purple accents, around world pos (129, 6, -74), 14 children).
-      let orig = null;
-      sc.traverse(o => {
-        if(orig) return;
-        if(o.type === 'Group' && o.children && o.children.length === 14){
-          const wp = new T.Vector3(); o.getWorldPosition(wp);
-          if(Math.abs(wp.x - 129) < 4 && wp.y > 3 && wp.y < 15 && Math.abs(wp.z + 74) < 6){
-            orig = o;
-          }
-        }
+      // Hand-built race-driver statue (v3n+): closed fists, visible face,
+      // professional stance, scaled to fit the chase-cam frame.
+      const root = new T.Group();
+      root.name = 'v3-start-statue';
+
+      const mat = (hex, opts) => new T.MeshStandardMaterial(Object.assign({color: hex, roughness: 0.55, metalness: 0.15}, opts || {}));
+      const emat = (hex, intensity) => new T.MeshStandardMaterial({color: hex, roughness: 0.4, metalness: 0.2, emissive: new T.Color(hex), emissiveIntensity: intensity||0.4});
+
+      const SKIN = 0x7a543d;
+      const RED = 0xd1283a;
+      const WHITE = 0xf2f2f0;
+      const PANTS = 0x14181e;
+      const BOOTS = 0x090b0e;
+      const TEAL = 0x4df0e0;
+
+      // Base dimensions (feet together, standing straight, head up at ~8u)
+      // Boots (together, slight offset to look like 'at attention')
+      [[-0.45,0],[0.45,0]].forEach(([x,z])=>{
+        const b = new T.Mesh(new T.BoxGeometry(0.75,0.55,1.3), mat(BOOTS,{roughness:0.3}));
+        b.position.set(x, 0.28, z+0.1); root.add(b);
       });
-      // Fallback: any group with 14 children whose kids include pink/purple accent colors
-      if(!orig){
-        sc.traverse(o => {
-          if(orig) return;
-          if(o.type === 'Group' && o.children && o.children.length >= 10 && o.children.length <= 16){
-            let hasPink = false, hasPurple = false;
-            o.children.forEach(c => {
-              const col = c.material && c.material.color && c.material.color.getHexString();
-              if(col === 'ff3d7f') hasPink = true;
-              if(col === '7a5cff') hasPurple = true;
-            });
-            if(hasPink && hasPurple) orig = o;
-          }
-        });
+      // Legs (slim, parallel, professional)
+      [[-0.45,0],[0.45,0]].forEach(([x,z])=>{
+        const l = new T.Mesh(new T.CylinderGeometry(0.42,0.36,3.4,16), mat(PANTS));
+        l.position.set(x, 2.3, z); root.add(l);
+        // white racing stripe outside
+        const str = new T.Mesh(new T.BoxGeometry(0.12,3.2,0.1), mat(WHITE,{roughness:0.3}));
+        str.position.set(x+(x<0?-0.4:0.4), 2.3, 0); root.add(str);
+      });
+
+      // Torso — racing jacket, zipped up
+      const waist = new T.Mesh(new T.CylinderGeometry(0.9,0.78,0.8,20), mat(RED));
+      waist.position.set(0, 4.3, 0); root.add(waist);
+      const chest = new T.Mesh(new T.CylinderGeometry(1.15,0.9,2.0,20), mat(RED));
+      chest.position.set(0, 5.7, 0); root.add(chest);
+      // White chest band (racing yoke)
+      const yoke = new T.Mesh(new T.CylinderGeometry(1.2,1.17,0.42,20), mat(WHITE,{roughness:0.3}));
+      yoke.position.set(0, 6.5, 0); root.add(yoke);
+      // Zipper
+      const zip = new T.Mesh(new T.BoxGeometry(0.09,2.6,0.05), mat(0x1a1a1a,{metalness:0.6,roughness:0.3}));
+      zip.position.set(0, 5.7, 1.12); root.add(zip);
+      // Chest number badge
+      const badge = new T.Mesh(new T.BoxGeometry(1.0,0.8,0.08), mat(WHITE,{roughness:0.3}));
+      badge.position.set(-0.5, 5.6, 1.08); badge.rotation.y = 0.1; root.add(badge);
+
+      // Arms — straight down, slight outward angle (professional/at-attention stance)
+      // Right arm (viewer's left since statue faces camera)
+      const rUp = new T.Mesh(new T.CylinderGeometry(0.42,0.36,1.95,16), mat(RED));
+      rUp.position.set(1.38, 5.75, 0); rUp.rotation.z = 0.14; root.add(rUp);
+      const rFore = new T.Mesh(new T.CylinderGeometry(0.36,0.30,1.9,16), mat(RED));
+      rFore.position.set(1.6, 3.9, 0); rFore.rotation.z = 0.08; root.add(rFore);
+      const rCuff = new T.Mesh(new T.CylinderGeometry(0.33,0.33,0.18,16), mat(WHITE,{roughness:0.3}));
+      rCuff.position.set(1.65, 3.0, 0); root.add(rCuff);
+
+      // Left arm (mirror)
+      const lUp = new T.Mesh(new T.CylinderGeometry(0.42,0.36,1.95,16), mat(RED));
+      lUp.position.set(-1.38, 5.75, 0); lUp.rotation.z = -0.14; root.add(lUp);
+      const lFore = new T.Mesh(new T.CylinderGeometry(0.36,0.30,1.9,16), mat(RED));
+      lFore.position.set(-1.6, 3.9, 0); lFore.rotation.z = -0.08; root.add(lFore);
+      const lCuff = new T.Mesh(new T.CylinderGeometry(0.33,0.33,0.18,16), mat(WHITE,{roughness:0.3}));
+      lCuff.position.set(-1.65, 3.0, 0); root.add(lCuff);
+
+      // === FISTS (closed hands, no fingers) ===
+      // Each fist is a rounded cube — approximates a clenched hand
+      function makeFist(x, y, z){
+        const g = new T.Group();
+        // Main knuckle block
+        const k = new T.Mesh(new T.BoxGeometry(0.55, 0.6, 0.5), mat(SKIN));
+        k.position.set(0, 0, 0);
+        g.add(k);
+        // Thumb bump
+        const thumb = new T.Mesh(new T.SphereGeometry(0.14, 10, 8), mat(SKIN));
+        thumb.position.set(x < 0 ? 0.28 : -0.28, 0.08, 0.18);
+        g.add(thumb);
+        // Knuckle ridges (4 small bumps on top of fist)
+        for(let i=0; i<4; i++){
+          const r = new T.Mesh(new T.SphereGeometry(0.08, 8, 6), mat(SKIN));
+          r.position.set(-0.17 + i*0.11, 0.33, 0.18);
+          g.add(r);
+        }
+        g.position.set(x, y, z);
+        return g;
       }
-      if(!orig){ console.warn(MARK, 'race driver original not found'); return false; }
+      root.add(makeFist(1.65, 2.5, 0));   // right fist
+      root.add(makeFist(-1.65, 2.5, 0));  // left fist
 
-      // Clone and place at the start
-      const clone = orig.clone(true);
-      clone.name = 'v3-start-statue';
-      clone.position.set(26, 0, 15);
-      clone.rotation.y = Math.PI * 0.9;
-      clone.scale.setScalar(15); // original is scale 21; shrink a bit to fit the start
-      clone.traverse(m => {
-        if(m.isMesh){
-          m.castShadow = true;
-          m.receiveShadow = true;
-          m.visible = true;
-          if(m.material){
-            const mats = Array.isArray(m.material) ? m.material : [m.material];
-            mats.forEach(mat => { if(mat && 'needsUpdate' in mat) mat.needsUpdate = true; });
-          }
-        }
-        if(m.isLight){ m.intensity = (m.intensity||0) * 1.2; }
+      // Neck + Head
+      const neck = new T.Mesh(new T.CylinderGeometry(0.3, 0.32, 0.55, 14), mat(SKIN));
+      neck.position.set(0, 7.1, 0); root.add(neck);
+      const head = new T.Mesh(new T.SphereGeometry(0.75, 24, 20), mat(SKIN));
+      head.position.set(0, 7.9, 0); head.scale.set(0.95,1.08,0.98); root.add(head);
+      // Short hair
+      const hair = new T.Mesh(new T.SphereGeometry(0.78, 20, 16, 0, Math.PI*2, 0, Math.PI/2.4), mat(0x1a1310,{roughness:0.7}));
+      hair.position.set(0, 7.95, -0.03); hair.scale.set(0.98,1.0,1.02); root.add(hair);
+      // Eyes (facing +Z so viewer sees them when statue is rotated to face camera)
+      [-0.24, 0.24].forEach(x=>{
+        const eye = new T.Mesh(new T.SphereGeometry(0.07, 10, 8), mat(0x0a0a0a));
+        eye.position.set(x, 7.95, 0.65); root.add(eye);
       });
-      sc.add(clone);
-      console.log(MARK, 'race-driver statue cloned to start (14-child source)');
+      // Brow line (subtle)
+      [-0.24, 0.24].forEach(x=>{
+        const brow = new T.Mesh(new T.BoxGeometry(0.22, 0.04, 0.03), mat(0x1a1310));
+        brow.position.set(x, 8.1, 0.68); root.add(brow);
+      });
+      // Nose
+      const nose = new T.Mesh(new T.ConeGeometry(0.08, 0.22, 8), mat(SKIN));
+      nose.position.set(0, 7.85, 0.72); nose.rotation.x = Math.PI/2; root.add(nose);
+      // Mouth (subtle)
+      const mouth = new T.Mesh(new T.BoxGeometry(0.22, 0.04, 0.03), mat(0x3a2420));
+      mouth.position.set(0, 7.6, 0.7); root.add(mouth);
 
-      // Base plinth (so he stands on something, not floating)
-      const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
-      const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
-      const plinth = new T.Mesh(new T.CylinderGeometry(3.0, 3.2, 0.7, 24), plinthMat);
-      plinth.position.set(26, -0.35, 15);
-      plinth.name = 'v3-start-plinth';
-      sc.add(plinth);
-      const glow = new T.Mesh(new T.TorusGeometry(2.9, 0.14, 10, 48), glowMat);
-      glow.position.set(26, 0.05, 15);
-      glow.rotation.x = Math.PI/2;
-      glow.name = 'v3-start-glow';
-      sc.add(glow);
+      // Pedestal
+      const plinth = new T.Mesh(new T.CylinderGeometry(1.9, 2.1, 0.5, 24), mat(0x2c3038,{roughness:0.9,metalness:0.05}));
+      plinth.position.set(0, -0.25, 0); root.add(plinth);
+      const glow = new T.Mesh(new T.TorusGeometry(1.85, 0.08, 10, 48), emat(TEAL, 1.2));
+      glow.position.set(0, 0.03, 0); glow.rotation.x = Math.PI/2; root.add(glow);
 
-      // Fill lights
+      root.traverse(m => { if(m.isMesh){ m.castShadow = true; m.receiveShadow = true; }});
+
+      // POSITION, SCALE, ROTATION
+      // Rotation: statue naturally faces +Z (face toward +Z). Set rotation.y so the
+      // face points toward the camera at the start (camera is at +Z looking -Z).
+      root.position.set(16, 0, 10);
+      root.scale.setScalar(1.0);  // model is already drawn at human scale (~8u tall)
+      root.rotation.y = Math.PI;  // face toward -Z = TOWARD camera at +Z? no: default +Z face, Math.PI flips to -Z. We want +Z, so 0.
+      // Actually: default face dir is +Z. We want face to look toward camera at +Z.
+      // That means the statue stands with face pointing +Z — so rotation.y = 0.
+      root.rotation.y = 0;
+      sc.add(root);
+      console.log(MARK, 'race-driver statue (fists, facing camera) built at', root.position.toArray());
+
+      // Fill lights, aimed at new center (16, 4, 10)
       if(!sc.getObjectByName('v3c-statue-fill')){
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
-        const key = new T.SpotLight(0xfff0d6, 95, 70, Math.PI/4, 0.5, 1.1);
-        key.position.set(36, 24, 25); key.target.position.set(26, 9, 15);
+        const key = new T.SpotLight(0xfff0d6, 60, 50, Math.PI/4, 0.5, 1.1);
+        key.position.set(24, 16, 20); key.target.position.set(16, 5, 10);
         fillGrp.add(key); fillGrp.add(key.target);
-        const rim = new T.SpotLight(0x4df0e0, 55, 60, Math.PI/4, 0.5, 1.2);
-        rim.position.set(14, 22, 5); rim.target.position.set(26, 9, 15);
+        const rim = new T.SpotLight(0x4df0e0, 32, 40, Math.PI/4, 0.5, 1.2);
+        rim.position.set(8, 15, 2); rim.target.position.set(16, 5, 10);
         fillGrp.add(rim); fillGrp.add(rim.target);
-        const amb = new T.PointLight(0xffe6b0, 22, 32, 2);
-        amb.position.set(26, 2, 15);
+        const amb = new T.PointLight(0xffe6b0, 12, 20, 2);
+        amb.position.set(16, 2, 10);
         fillGrp.add(amb);
         sc.add(fillGrp);
       }
