@@ -344,27 +344,46 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('marquis.glb?v=1', gltf => {
+      loader.load('marquis.glb?v=2', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
-          // Keep the original textured material; just fix the color-space + kill emissive glow
+          // PBR-PRESERVING pipeline: keep the Meshy photogrammetry material intact
+          // (baseColor + metallicRoughness + normal maps) instead of rebuilding it.
+          // Only correct color space, kill unwanted emissive, pick up scene envMap,
+          // and apply a subtle warm tonal lift so the texture reads richer.
+          const envMap = window.__scene && window.__scene.environment;
           root.traverse(o => {
-            if(o.isMesh){
-              o.castShadow = true;
-              o.receiveShadow = true;
-              const origMap = o.material && o.material.map;
-              if(origMap){ origMap.colorSpace = T.SRGBColorSpace; origMap.needsUpdate = true; }
-              o.material = new T.MeshStandardMaterial({
-                map: origMap,
-                color: 0xffffff,
-                emissive: new T.Color(0x000000),
-                emissiveIntensity: 0,
-                roughness: 0.55,
-                metalness: 0.08,
-                side: T.DoubleSide
-              });
-            }
+            if(!o.isMesh) return;
+            o.castShadow = true;
+            o.receiveShadow = true;
+            o.frustumCulled = false; // keep visible at splash camera angles
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(m => {
+              if(!m) return;
+              // sRGB only on the color (albedo) map — never on data maps
+              if(m.map){
+                m.map.colorSpace = T.SRGBColorSpace;
+                m.map.anisotropy = 16;
+                m.map.needsUpdate = true;
+              }
+              if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
+              if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
+              if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
+              // Kill any baked emissive from the scan
+              if(m.emissive){ m.emissive.setHex(0x000000); }
+              m.emissiveIntensity = 0;
+              // Subtle warm tint lifts skin + fabric saturation without blowing out
+              if(m.color){ m.color.setHex(0xfffaf2); }
+              // Photogrammetry scans benefit from slightly softer roughness so highlights sit on cloth
+              m.roughness = (typeof m.roughness === 'number') ? Math.max(0.42, m.roughness * 0.85) : 0.55;
+              m.metalness = (typeof m.metalness === 'number') ? Math.min(m.metalness, 0.12) : 0.05;
+              // Pick up the scene HDR environment for subtle reflections / fill
+              if(envMap){ m.envMap = envMap; m.envMapIntensity = 0.85; }
+              m.toneMapped = true;
+              m.side = T.FrontSide;
+              m.needsUpdate = true;
+            });
           });
           // ARM RIG DISABLED - marquis.glb has a confident pose (not T-pose)
           if(false) { // --- disabled arm rig below ---
@@ -392,40 +411,60 @@
           });
 
           } // --- end disabled arm rig ---
-          // Auto-scale to ~6u tall and plant at the statue spot
+          // Scale a bit taller (7.5u) for a stronger silhouette from the splash camera
           const bbox = new T.Box3().setFromObject(root);
           const size = new T.Vector3(); bbox.getSize(size);
-          root.scale.setScalar(size.y > 0.01 ? (6 / size.y) : 1);
+          root.scale.setScalar(size.y > 0.01 ? (7.5 / size.y) : 1);
           const bbox2 = new T.Box3().setFromObject(root);
-          root.position.set(16, -bbox2.min.y, 6);
-          root.rotation.y = -Math.PI / 5;
+          // Stance: face slightly toward the chase camera's natural approach angle
+          root.position.set(16, -bbox2.min.y + 0.9, 6); // +0.9 = raised plinth top
+          root.rotation.y = -Math.PI / 7;              // more face-on, less turned
           sc.add(root);
-          console.log(MARK, 'racer.glb loaded with FULL textured material');
+          console.log(MARK, 'marquis.glb loaded (PBR preserved, warm-lifted)');
 
-          // Plinth + glow halo
-          const plinthMat = new T.MeshStandardMaterial({color: 0x2c3038, roughness: 0.9, metalness: 0.05});
-          const glowMat = new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.2});
-          const plinth = new T.Mesh(new T.CylinderGeometry(2.2, 2.4, 0.5, 24), plinthMat);
-          plinth.position.set(16, -0.25, 6); plinth.name = 'v3-start-plinth'; sc.add(plinth);
-          const glow = new T.Mesh(new T.TorusGeometry(2.15, 0.11, 10, 48), glowMat);
-          glow.position.set(16, 0.04, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
+          // Premium two-tier plinth: dark matte base + brushed metal cap + teal halo
+          const base = new T.Mesh(
+            new T.CylinderGeometry(2.5, 2.7, 0.7, 32),
+            new T.MeshStandardMaterial({color: 0x14181f, roughness: 0.95, metalness: 0.02, envMapIntensity: 0.6})
+          );
+          base.position.set(16, 0.35, 6); base.name = 'v3-start-plinth-base';
+          base.receiveShadow = true; sc.add(base);
+          const cap = new T.Mesh(
+            new T.CylinderGeometry(2.25, 2.4, 0.22, 48),
+            new T.MeshStandardMaterial({color: 0x2a2f3a, roughness: 0.35, metalness: 0.85, envMapIntensity: 1.2})
+          );
+          cap.position.set(16, 0.81, 6); cap.name = 'v3-start-plinth-cap';
+          cap.receiveShadow = true; sc.add(cap);
+          const glow = new T.Mesh(
+            new T.TorusGeometry(2.25, 0.09, 12, 64),
+            new T.MeshStandardMaterial({color: 0x4df0e0, emissive: new T.Color(0x4df0e0), emissiveIntensity: 1.8, toneMapped: false})
+          );
+          glow.position.set(16, 0.94, 6); glow.rotation.x = Math.PI/2; glow.name = 'v3-start-glow'; sc.add(glow);
 
-          // Neutral white 3-point lighting so texture reads true
+          // Studio 3-point + cold rim + face catch — tuned for photoreal skin & fabric
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            const key = new T.SpotLight(0xfff8ec, 300, 32, Math.PI/3.5, 0.4, 1);
-            key.position.set(22, 12, 14); key.target.position.set(16, 5, 6);
+            // KEY (warm, high) — primary modeling light from camera-right
+            const key = new T.SpotLight(0xfff2d8, 360, 34, Math.PI/3.6, 0.45, 1.2);
+            key.position.set(23, 14, 15); key.target.position.set(16, 5, 6);
             fillGrp.add(key); fillGrp.add(key.target);
-            const fl = new T.SpotLight(0xffffff, 130, 30, Math.PI/3.5, 0.5, 1);
-            fl.position.set(10, 10, 12); fl.target.position.set(16, 4, 6);
+            // FILL (neutral, low, soft) — camera-left shadow lift
+            const fl = new T.SpotLight(0xeef2ff, 140, 32, Math.PI/3.2, 0.55, 1);
+            fl.position.set(9, 9, 13); fl.target.position.set(16, 4, 6);
             fillGrp.add(fl); fillGrp.add(fl.target);
-            const rim = new T.SpotLight(0xd0e4ff, 48, 25, Math.PI/4, 0.4, 1);
-            rim.position.set(18, 10, -2); rim.target.position.set(16, 5, 6);
+            // RIM (cool blue, behind) — silhouette separation against city backdrop
+            const rim = new T.SpotLight(0x9ccaff, 110, 30, Math.PI/4.2, 0.35, 1);
+            rim.position.set(19, 12, -3); rim.target.position.set(16, 5, 6);
             fillGrp.add(rim); fillGrp.add(rim.target);
-            const face = new T.PointLight(0xfff6e4, 18, 10, 2);
-            face.position.set(17, 9, 10);
+            // FACE catch — tight warm point just above eye level for a highlight in the eyes
+            const face = new T.PointLight(0xfff0d8, 24, 11, 2);
+            face.position.set(17, 10.2, 10.5);
             fillGrp.add(face);
+            // BOUNCE from below — simulate ground kick off the brushed-metal cap
+            const bounce = new T.PointLight(0x7fd4e8, 10, 6, 2);
+            bounce.position.set(16, 1.2, 7.5);
+            fillGrp.add(bounce);
             sc.add(fillGrp);
           }
         }catch(e){ console.warn(MARK, 'GLB post-load:', e.message); }
