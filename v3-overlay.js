@@ -532,22 +532,26 @@
           nameplate.name = 'v3-start-nameplate';
           sc.add(nameplate);
 
-          // Studio-matched neutral lighting at the statue so the figure reads true.
+          // STUDIO LIGHTS: 3-point rig at bright studio levels + hemi fill
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // KEY — bright neutral white, high-right
-            const key = new T.PointLight(0xffffff, 240, 16, 1.0);
-            key.position.set(18, 10, 9);
+            // KEY — bright warm-white top-right (primary studio light)
+            const key = new T.PointLight(0xfff8ec, 650, 18, 0.9);
+            key.position.set(19, 11, 10);
             fillGrp.add(key);
-            // FILL — soft warm from left
-            const fill = new T.PointLight(0xfff0d8, 120, 13, 1.2);
-            fill.position.set(13, 7, 8);
+            // FILL — soft warm top-left (reduces shadow density)
+            const fill = new T.PointLight(0xfff0d8, 360, 15, 1.0);
+            fill.position.set(13, 9, 9);
             fillGrp.add(fill);
-            // AMBIENT POINT — tight local hemi-ish fill so shadows don't go pitch
-            const amb = new T.PointLight(0xffffff, 40, 10, 1.3);
-            amb.position.set(16, 5, 6);
-            fillGrp.add(amb);
+            // RIM — cool neutral behind-above (silhouette separation)
+            const rim = new T.PointLight(0xeef4ff, 200, 14, 1.1);
+            rim.position.set(16, 10, 2);
+            fillGrp.add(rim);
+            // LOCAL HEMI — bright uniform ambient so shadow sides read
+            const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 1.4);
+            hemi.position.set(16, 10, 6);
+            fillGrp.add(hemi);
             sc.add(fillGrp);
             // Dim nearby colored scene PointLights that fall within our statue's zone
             // so they don't bleed teal/pink/blue tint onto the suit.
