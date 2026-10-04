@@ -514,7 +514,7 @@
             // Dim nearby colored scene PointLights that fall within our statue's zone
             // so they don't bleed teal/pink/blue tint onto the suit.
             try {
-              const dimRange = 20;
+              const dimRange = 32;
               const target = new T.Vector3(16, 5, 6);
               sc.traverse(obj => {
                 if(!obj.isLight) return;
@@ -529,7 +529,7 @@
                 const sat = mx - mn;
                 if(sat > 0.35) {
                   obj.userData.v3OrigIntensity = obj.intensity;
-                  obj.intensity *= 0.25;
+                  obj.intensity *= 0.10;  // aggressive dim: scene colored lights near statue
                 }
               });
             } catch(e) { console.warn(MARK, 'light tamer:', e.message); }
