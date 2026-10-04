@@ -299,7 +299,7 @@
       emissiveMap: tex,
       emissiveIntensity: 0.25,
       roughness: 0.45,
-      metalness: 0.0,
+      metalness: 0.08,
       side: T.DoubleSide
     });
     const geo = new T.PlaneGeometry(0.72, 0.22);
@@ -363,7 +363,7 @@
                 emissive: new T.Color(0x000000),
                 emissiveIntensity: 0,
                 roughness: 0.55,
-                metalness: 0.0,
+                metalness: 0.08,
                 side: T.DoubleSide
               });
               o.material = newMat;
@@ -436,7 +436,7 @@
             const face = new T.PointLight(0xfff6e4, 18, 10, 2);
             face.position.set(rx+1, ry+9, rz+4);
             fillGrp.add(face);
-            const rim = new T.SpotLight(0xd0e4ff, 65, 25, Math.PI/4, 0.4, 1);
+            const rim = new T.SpotLight(0xd0e4ff, 48, 25, Math.PI/4, 0.4, 1);
             rim.position.set(rx+2, ry+10, rz-6); rim.target.position.set(rx, ry+5, rz);
             fillGrp.add(rim); fillGrp.add(rim.target);
             sc.add(fillGrp);
