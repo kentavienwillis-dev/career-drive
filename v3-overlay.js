@@ -380,8 +380,8 @@
           const yOffset = -bbox2.min.y;
           root.position.set(16, yOffset, 6);
           root.rotation.y = -Math.PI/5;  // face angled toward chase cam
-          // Vertex-level rigging: swing arms down from T-pose (no bones in Meshy source)
-          try{
+          // Vertex-level rigging DISABLED for v1 statue.glb (not a Meshy T-pose; already sculpted)
+          if(false) try{
             root.traverse(o => {
               if(!o.isMesh) return;
               const pos = o.geometry.attributes.position;
