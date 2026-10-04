@@ -426,8 +426,8 @@
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
             const rx = root.position.x, ry = root.position.y, rz = root.position.z;
-            const key = new T.SpotLight(0xffffff, 260, 30, Math.PI/3.5, 0.4, 1);
-            key.position.set(rx+6, ry+10, rz+10); key.target.position.set(rx, ry+3, rz);
+            const key = new T.SpotLight(0xfff8ec, 300, 32, Math.PI/3.5, 0.4, 1);
+            key.position.set(rx+5, ry+9, rz+9); key.target.position.set(rx, ry+5, rz);
             fillGrp.add(key); fillGrp.add(key.target);
             const fl = new T.SpotLight(0xffffff, 110, 30, Math.PI/3.5, 0.5, 1);
             fl.position.set(rx-6, ry+8, rz+8); fl.target.position.set(rx, ry+3, rz);
