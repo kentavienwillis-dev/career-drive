@@ -370,7 +370,7 @@
           const bbox2 = new T.Box3().setFromObject(root);
           const yOffset = -bbox2.min.y;
           root.position.set(18, yOffset, 8);
-          root.rotation.y = 0;  // face toward camera (model default faces +Z)
+          root.rotation.y = -Math.PI/5;  // face angled toward chase cam
           sc.add(root);
           console.log(MARK, 'dreads.glb loaded; H=' + size.y.toFixed(1) + ' scale=' + scale.toFixed(2) + ' feetLift=' + yOffset.toFixed(2));
 
