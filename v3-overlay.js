@@ -322,7 +322,7 @@
           o.visible = false; hid++;
         }
       });
-      if(hid) console.log(MARK, 'start-gantry hidden ×', hid);
+      if(hid) console.log(MARK, 'start-gantry hidden ï¿½', hid);
       return hid > 0;
     }catch(e){ return false; }
   }
@@ -331,48 +331,57 @@
     try{
       const T = window.THREE, sc = window.__scene;
       if(!T || !sc) return false;
-      const figs = window.__figures ? window.__figures() : [];
-      const statue0 = figs.find(f => f.n === 'statue-0');
-      if(!statue0 || !statue0.g) return false;
 
-      // Target: visible from the car at the start (car at Z˜19.6, looking toward -Z)
-      // Old game placement: ahead of car on the right-hand side, close enough to see immediately.
-      // Current v2 position: (33.4, 0, -30) — too far right and too far forward
-      // Move to (18, 0, 0) — right shoulder, almost beside the car at start
-      const target = new T.Vector3(18, 0, 0);
-      const cur = new T.Vector3();
-      statue0.g.getWorldPosition(cur);
-      // Only move once (idempotent); mark we've already repositioned
-      if(statue0.g.userData.__v3eRepositioned) return true;
-      statue0.g.position.set(target.x, target.y, target.z);
-      // Face the road (yaw toward +X ? no, face the car coming through: look toward -Z slightly)
-      statue0.g.rotation.y = Math.PI * 0.9;  // ~162° — mostly facing the oncoming car
-      statue0.g.userData.__v3eRepositioned = true;
-      console.log(MARK, 'statue-0 repositioned to', target.toArray(), 'from', cur.toArray());
+      // Find the suit-figure in the scene (the Marquis figure in a far district)
+      let orig = null;
+      sc.traverse(o => { if(!orig && o.name === 'suit-figure') orig = o; });
+      if(!orig) return false;
 
-      // Boost any existing fill lights
-      sc.traverse(o => {
-        if(o && o.isLight && o.name && /start-statue-fill|statue-streetlight/i.test(o.name)){
-          o.intensity = Math.max(o.intensity, 24);
-        }
-      });
-      // Spawn two custom fill spotlights to actually illuminate the figure.
-      // Statue size ~25u, standing at (18, 0..26, 0). Two spots: one front, one key side.
+      // Target: visible from chase cam at the start.
+      // Car starts around Z~19.6 facing -Z. Place statue slightly ahead
+      // (-Z direction) and on the right shoulder (+X) so it dominates the right
+      // side of the frame in the first few seconds.
+      const target = new T.Vector3(14, 0, 6);
+
+      // Clone the figure (leave original in its home district untouched)
+      if(!sc.getObjectByName('v3-start-statue')){
+        const clone = orig.clone(true);
+        clone.name = 'v3-start-statue';
+        clone.position.set(target.x, target.y, target.z);
+        clone.rotation.y = Math.PI * 0.85;  // face oncoming car (toward -Z/+X)
+        clone.scale.copy(orig.scale);
+        clone.visible = true;
+        clone.traverse(m => {
+          if(m.isMesh){
+            m.castShadow = true;
+            m.receiveShadow = true;
+            if(m.material){
+              const mats = Array.isArray(m.material) ? m.material : [m.material];
+              mats.forEach(mat => { if(mat && 'needsUpdate' in mat) mat.needsUpdate = true; });
+            }
+          }
+        });
+        sc.add(clone);
+        console.log(MARK, 'start statue cloned from suit-figure to', target.toArray());
+      }
+
+      // Spawn fill spotlights to illuminate the figure (statue ~25u tall)
       if(!sc.getObjectByName('v3c-statue-fill')){
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
-        // Key (warm, front-right of statue)
-        // Statue center ˜ (10, 13, -2)
-        const key = new T.SpotLight(0xfff0d6, 55, 60, Math.PI/5, 0.5, 1.2);
-        key.position.set(20, 22, 8);
-        key.target.position.set(10, 12, -2);
+        // Key light (warm, from front-right)
+        const key = new T.SpotLight(0xfff0d6, 85, 70, Math.PI/4, 0.5, 1.1);
+        key.position.set(26, 24, 14);
+        key.target.position.set(14, 10, 6);
         fillGrp.add(key); fillGrp.add(key.target);
-        const rim = new T.SpotLight(0x4df0e0, 32, 50, Math.PI/4.5, 0.6, 1.3);
-        rim.position.set(-2, 20, -10);
-        rim.target.position.set(10, 12, -2);
+        // Rim light (teal, from back-left)
+        const rim = new T.SpotLight(0x4df0e0, 48, 60, Math.PI/4, 0.5, 1.2);
+        rim.position.set(2, 22, -4);
+        rim.target.position.set(14, 10, 6);
         fillGrp.add(rim); fillGrp.add(rim.target);
-        const amb = new T.PointLight(0xffe6b0, 12, 24, 2);
-        amb.position.set(10, 2, -2);
+        // Warm ambient fill at base
+        const amb = new T.PointLight(0xffe6b0, 18, 28, 2);
+        amb.position.set(14, 2, 6);
         fillGrp.add(amb);
         sc.add(fillGrp);
         console.log(MARK, 'statue fill lights spawned (3 lights)');
