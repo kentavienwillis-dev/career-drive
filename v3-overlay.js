@@ -372,9 +372,9 @@
               // soft gray bottom (studio floor)
               const grad = ectx.createLinearGradient(0, 0, 0, 256);
               grad.addColorStop(0.0, '#ffffff');
-              grad.addColorStop(0.4, '#f0ead8');  // slight warm neutral
-              grad.addColorStop(0.6, '#d8d4ca');
-              grad.addColorStop(1.0, '#8a8780');
+              grad.addColorStop(0.3, '#fcf8ee');  // slight warm highlight
+              grad.addColorStop(0.6, '#f0ecde');  // bright neutral mid
+              grad.addColorStop(1.0, '#d8d4c8');  // soft studio floor
               ectx.fillStyle = grad; ectx.fillRect(0, 0, 512, 256);
               // Add a bright 'key light' hotspot top-right
               const key = ectx.createRadialGradient(380, 60, 10, 380, 60, 120);
@@ -421,7 +421,7 @@
               if(m.color) m.color.setHex(0xffffff);
               // STUDIO env (not scene env) at high intensity = Meshy-preview look
               m.envMap = studioEnv || null;
-              m.envMapIntensity = studioEnv ? 1.2 : 0;
+              m.envMapIntensity = studioEnv ? 2.2 : 0;
               // Match Meshy's default material response
               m.roughness = 0.72;
               m.metalness = 0.0;
