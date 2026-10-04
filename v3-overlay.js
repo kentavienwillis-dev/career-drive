@@ -460,7 +460,7 @@
       root.rotation.y = Math.PI;  // face toward -Z = TOWARD camera at +Z? no: default +Z face, Math.PI flips to -Z. We want +Z, so 0.
       // Actually: default face dir is +Z. We want face to look toward camera at +Z.
       // That means the statue stands with face pointing +Z — so rotation.y = 0.
-      root.rotation.y = 0;
+      root.rotation.y = -Math.PI/8;  // face slightly toward camera (which is at -X relative to statue)
       sc.add(root);
       console.log(MARK, 'race-driver statue (fists, facing camera) built at', root.position.toArray());
 
