@@ -467,7 +467,12 @@
       // Load MeshoptDecoder, then start the GLB load
       if(window.__v3MeshoptReady){ startLoad(); }
       else {
-        import('https://cdn.jsdelivr.net/npm/[email protected]/meshopt_decoder.module.js').then(async (mod) => {
+        // Build URL from parts so proxy email-obfuscation doesn't mangle the version @ sign
+        const PKG = 'meshoptimizer';
+        const VER = '0.21.0';
+        const AT = String.fromCharCode(64);
+        const url = 'https://cdn.jsdelivr.net/npm/' + PKG + AT + VER + '/meshopt_decoder.module.js';
+        import(url).then(async (mod) => {
           const dec = mod.MeshoptDecoder;
           await dec.ready;
           loader.setMeshoptDecoder(dec);
@@ -475,8 +480,19 @@
           console.log(MARK, 'MeshoptDecoder ready; loading marquis.glb');
           startLoad();
         }).catch(e => {
-          console.warn(MARK, 'MeshoptDecoder load failed, trying direct load:', e.message);
-          startLoad();
+          console.warn(MARK, 'MeshoptDecoder load failed:', e.message, '- trying unpkg fallback');
+          const url2 = 'https://unpkg.com/' + PKG + AT + VER + '/meshopt_decoder.module.js';
+          import(url2).then(async (mod) => {
+            const dec = mod.MeshoptDecoder;
+            await dec.ready;
+            loader.setMeshoptDecoder(dec);
+            window.__v3MeshoptReady = true;
+            console.log(MARK, 'MeshoptDecoder loaded via unpkg');
+            startLoad();
+          }).catch(e2 => {
+            console.warn(MARK, 'Both CDN loads failed:', e2.message);
+            startLoad();
+          });
         });
       }
       return true;
