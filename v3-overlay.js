@@ -346,7 +346,7 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('statue.glb?v=2', gltf => {
+      loader.load('racer.glb?v=1', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -381,7 +381,7 @@
           root.position.set(16, yOffset, 6);
           root.rotation.y = -Math.PI/5;  // face angled toward chase cam
           // Vertex-level rigging DISABLED for v1 statue.glb (not a Meshy T-pose; already sculpted)
-          if(false) try{
+          try{
             root.traverse(o => {
               if(!o.isMesh) return;
               const pos = o.geometry.attributes.position;
