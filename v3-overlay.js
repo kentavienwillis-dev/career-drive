@@ -385,22 +385,18 @@
               envTex.mapping = T.EquirectangularReflectionMapping;
               envTex.colorSpace = T.SRGBColorSpace;
               // Convert to PMREM for proper PBR reflections
-              const renderer = (() => {
-                for (const k of Object.keys(window)) {
-                  const v = window[k];
-                  if (v && typeof v === 'object' && v.render && v.domElement && v.setSize) return v;
-                }
-                return null;
-              })();
-              if(renderer){
-                const pmrem = new T.PMREMGenerator(renderer);
-                pmrem.compileEquirectangularShader();
-                studioEnv = pmrem.fromEquirectangular(envTex).texture;
-                envTex.dispose();
-                pmrem.dispose();
-                window.__v3StudioEnv = studioEnv;
-                console.log(MARK, 'studio HDR environment built');
-              }
+              // Create a tiny temporary WebGLRenderer just to generate PMREM
+              // (the game's renderer is locked in its bundle closure, not on window)
+              const tmpRenderer = new T.WebGLRenderer({ canvas: document.createElement('canvas'), antialias: false });
+              tmpRenderer.setSize(2, 2);
+              const pmrem = new T.PMREMGenerator(tmpRenderer);
+              pmrem.compileEquirectangularShader();
+              studioEnv = pmrem.fromEquirectangular(envTex).texture;
+              envTex.dispose();
+              pmrem.dispose();
+              tmpRenderer.dispose();
+              window.__v3StudioEnv = studioEnv;
+              console.log(MARK, 'studio HDR environment built via temp renderer');
             }catch(e){ console.warn(MARK, 'studio HDR build failed:', e.message); }
           }
 
