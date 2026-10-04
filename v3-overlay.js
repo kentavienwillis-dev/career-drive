@@ -357,11 +357,54 @@
           // (v15 was generated from a fresh Meshy run on your actual suit photo so
           // the colors — brown skin + gray suit + dreads + pocket square + black
           // shoes — are correct in the texture itself. No pixel manipulation needed.)
-          // Standard PBR material — makes the figure read as a SOLID real-world
-          // human, not a glowing hologram. No emissive, no self-illumination.
-          // The figure integrates naturally with scene fog, tone mapping, and
-          // environment reflections just like any other game object.
-          const scEnv = window.__scene && window.__scene.environment;
+          // Build a dedicated STUDIO HDR environment just for this figure.
+          // Meshy's own preview uses an HDR studio lightbox - the game's night-scene
+          // env was tinting the figure cold blue. By giving the figure its own warm-
+          // neutral studio HDR, it renders as if in Meshy's own viewer.
+          let studioEnv = window.__v3StudioEnv;
+          if(!studioEnv){
+            try{
+              // Build a procedural studio environment: bright warm-neutral gradient
+              const envCanvas = document.createElement('canvas');
+              envCanvas.width = 512; envCanvas.height = 256;
+              const ectx = envCanvas.getContext('2d');
+              // Vertical gradient - bright top (studio ceiling light), neutral middle,
+              // soft gray bottom (studio floor)
+              const grad = ectx.createLinearGradient(0, 0, 0, 256);
+              grad.addColorStop(0.0, '#ffffff');
+              grad.addColorStop(0.4, '#f0ead8');  // slight warm neutral
+              grad.addColorStop(0.6, '#d8d4ca');
+              grad.addColorStop(1.0, '#8a8780');
+              ectx.fillStyle = grad; ectx.fillRect(0, 0, 512, 256);
+              // Add a bright 'key light' hotspot top-right
+              const key = ectx.createRadialGradient(380, 60, 10, 380, 60, 120);
+              key.addColorStop(0, 'rgba(255,255,255,0.9)');
+              key.addColorStop(1, 'rgba(255,255,255,0)');
+              ectx.fillStyle = key; ectx.fillRect(0, 0, 512, 256);
+              const envTex = new T.CanvasTexture(envCanvas);
+              envTex.mapping = T.EquirectangularReflectionMapping;
+              envTex.colorSpace = T.SRGBColorSpace;
+              // Convert to PMREM for proper PBR reflections
+              const renderer = (() => {
+                for (const k of Object.keys(window)) {
+                  const v = window[k];
+                  if (v && typeof v === 'object' && v.render && v.domElement && v.setSize) return v;
+                }
+                return null;
+              })();
+              if(renderer){
+                const pmrem = new T.PMREMGenerator(renderer);
+                pmrem.compileEquirectangularShader();
+                studioEnv = pmrem.fromEquirectangular(envTex).texture;
+                envTex.dispose();
+                pmrem.dispose();
+                window.__v3StudioEnv = studioEnv;
+                console.log(MARK, 'studio HDR environment built');
+              }
+            }catch(e){ console.warn(MARK, 'studio HDR build failed:', e.message); }
+          }
+
+          // Apply PBR with STUDIO environment so figure looks like Meshy's preview
           root.traverse(o => {
             if(!o.isMesh) return;
             o.castShadow = true;
@@ -375,27 +418,26 @@
               if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
               if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
               if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
-              // KILL any emissive/self-illumination — this is what created the hologram look
+              // No emissive (no hologram)
               m.emissiveMap = null;
               if(m.emissive) m.emissive.setHex(0x000000);
               m.emissiveIntensity = 0;
-              // Pure diffuse color multiplier
               if(m.color) m.color.setHex(0xffffff);
-              // Scene env map at moderate intensity so figure gets realistic reflections
-              m.envMap = scEnv || null;
-              m.envMapIntensity = scEnv ? 0.6 : 0;
-              // Proper photoreal matte-wool-suit roughness, zero metalness
-              m.roughness = 0.85;
-              m.metalness = 0.02;
-              // Full opacity, no transparency, correct culling
+              // STUDIO env (not scene env) at high intensity = Meshy-preview look
+              m.envMap = studioEnv || null;
+              m.envMapIntensity = studioEnv ? 1.2 : 0;
+              // Match Meshy's default material response
+              m.roughness = 0.72;
+              m.metalness = 0.0;
               m.transparent = false;
               m.opacity = 1.0;
               m.depthWrite = true;
               m.depthTest = true;
               m.alphaTest = 0;
-              // Integrate with scene — tone map and respect fog
+              // Keep tone mapping (so it blends with scene) but disable fog
+              // (fog would tint the figure cold blue over distance)
               m.toneMapped = true;
-              m.fog = true;
+              m.fog = false;
               m.side = T.FrontSide;
               m.needsUpdate = true;
             });
