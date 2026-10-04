@@ -374,9 +374,15 @@
       // Zipper
       const zip = new T.Mesh(new T.BoxGeometry(0.09,2.6,0.05), mat(0x1a1a1a,{metalness:0.6,roughness:0.3}));
       zip.position.set(0, 5.7, 1.12); root.add(zip);
-      // Chest number badge
-      const badge = new T.Mesh(new T.BoxGeometry(1.0,0.8,0.08), mat(WHITE,{roughness:0.3}));
+      // Chest number badge with racing "7"
+      const badge = new T.Mesh(new T.BoxGeometry(1.1,0.9,0.08), mat(WHITE,{roughness:0.3}));
       badge.position.set(-0.5, 5.6, 1.08); badge.rotation.y = 0.1; root.add(badge);
+      // Horizontal bar of 7
+      const n7top = new T.Mesh(new T.BoxGeometry(0.55, 0.12, 0.04), mat(0x0a0a0a));
+      n7top.position.set(-0.5, 5.9, 1.14); n7top.rotation.y = 0.1; root.add(n7top);
+      // Diagonal of 7
+      const n7diag = new T.Mesh(new T.BoxGeometry(0.12, 0.78, 0.04), mat(0x0a0a0a));
+      n7diag.position.set(-0.4, 5.5, 1.14); n7diag.rotation.y = 0.1; n7diag.rotation.z = 0.22; root.add(n7diag);
 
       // Arms — straight down, slight outward angle (professional/at-attention stance)
       // Right arm (viewer's left since statue faces camera)
@@ -400,7 +406,7 @@
       function makeFist(x, y, z){
         const g = new T.Group();
         // Main knuckle block
-        const k = new T.Mesh(new T.BoxGeometry(0.55, 0.6, 0.5), mat(SKIN));
+        const k = new T.Mesh(new T.BoxGeometry(0.72, 0.8, 0.6), mat(SKIN));
         k.position.set(0, 0, 0);
         g.add(k);
         // Thumb bump
@@ -422,11 +428,11 @@
       // Neck + Head
       const neck = new T.Mesh(new T.CylinderGeometry(0.3, 0.32, 0.55, 14), mat(SKIN));
       neck.position.set(0, 7.1, 0); root.add(neck);
-      const head = new T.Mesh(new T.SphereGeometry(0.75, 24, 20), mat(SKIN));
-      head.position.set(0, 7.9, 0); head.scale.set(0.95,1.08,0.98); root.add(head);
+      const head = new T.Mesh(new T.SphereGeometry(0.88, 24, 20), mat(SKIN));
+      head.position.set(0, 8.0, 0); head.scale.set(0.95,1.08,0.98); root.add(head);
       // Short hair
-      const hair = new T.Mesh(new T.SphereGeometry(0.78, 20, 16, 0, Math.PI*2, 0, Math.PI/2.4), mat(0x1a1310,{roughness:0.7}));
-      hair.position.set(0, 7.95, -0.03); hair.scale.set(0.98,1.0,1.02); root.add(hair);
+      const hair = new T.Mesh(new T.SphereGeometry(0.92, 20, 16, 0, Math.PI*2, 0, Math.PI/2.4), mat(0x1a1310,{roughness:0.7}));
+      hair.position.set(0, 8.05, -0.03); hair.scale.set(0.98,1.0,1.02); root.add(hair);
       // Eyes (facing +Z so viewer sees them when statue is rotated to face camera)
       [-0.24, 0.24].forEach(x=>{
         const eye = new T.Mesh(new T.SphereGeometry(0.07, 10, 8), mat(0x0a0a0a));
@@ -455,7 +461,7 @@
       // POSITION, SCALE, ROTATION
       // Rotation: statue naturally faces +Z (face toward +Z). Set rotation.y so the
       // face points toward the camera at the start (camera is at +Z looking -Z).
-      root.position.set(14, 0, -2);
+      root.position.set(12, 0, 0);
       root.scale.setScalar(0.75);  // model is already drawn at human scale (~8u tall)
       root.rotation.y = Math.PI;  // face toward -Z = TOWARD camera at +Z? no: default +Z face, Math.PI flips to -Z. We want +Z, so 0.
       // Actually: default face dir is +Z. We want face to look toward camera at +Z.
@@ -469,13 +475,13 @@
         const fillGrp = new T.Group();
         fillGrp.name = 'v3c-statue-fill';
         const key = new T.SpotLight(0xfff0d6, 60, 50, Math.PI/4, 0.5, 1.1);
-        key.position.set(22, 14, 8); key.target.position.set(14, 4, -2);
+        key.position.set(20, 14, 10); key.target.position.set(12, 4, 0);
         fillGrp.add(key); fillGrp.add(key.target);
         const rim = new T.SpotLight(0x4df0e0, 32, 40, Math.PI/4, 0.5, 1.2);
-        rim.position.set(6, 13, -10); rim.target.position.set(14, 4, -2);
+        rim.position.set(4, 13, -8); rim.target.position.set(12, 4, 0);
         fillGrp.add(rim); fillGrp.add(rim.target);
         const amb = new T.PointLight(0xffe6b0, 12, 20, 2);
-        amb.position.set(14, 2, -2);
+        amb.position.set(12, 2, 0);
         fillGrp.add(amb);
         sc.add(fillGrp);
       }
