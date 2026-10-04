@@ -346,7 +346,7 @@
 
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
-      loader.load('dreads.glb?v=1', gltf => {
+      loader.load('dreads.glb?v=2', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
