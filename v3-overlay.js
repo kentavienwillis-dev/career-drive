@@ -410,34 +410,16 @@
             mats.forEach(m => {
               if(!m) return;
               // Texture color spaces
+              // v=89 CLEAN PASS-THROUGH: no material tampering - treat the Meshy GLB
+              // like the car GLB. Just set correct colorSpace on baseColor (required for
+               // Three.js to show sRGB-encoded JPEG textures accurately) and that's it.
+              // Everything else - color, env, roughness, metalness, emissive - stays
+              // exactly as Meshy baked them. Layer isolation below protects from the
+              // scene's hot SpotLights.
               if(m.map){ m.map.colorSpace = T.SRGBColorSpace; m.map.anisotropy = 16; m.map.needsUpdate = true; }
               if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
               if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
               if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
-              // No emissive (no hologram)
-              m.emissiveMap = null;
-              if(m.emissive) m.emissive.setHex(0x000000);
-              m.emissiveIntensity = 0;
-              // v=88 pass 3: Meshy's prompt-baked texture is TOO bright, so multiply
-              // base color down to 65% to bring the suit into a readable mid-gray range.
-              if(m.color) m.color.setHex(0xa5a5a5);
-              // No env reflection — texture + direct lights only (texture is already uniform).
-              m.envMap = null;
-              m.envMapIntensity = 0;
-              // Match Meshy's default material response. v=86 marquis-v17.glb was
-              // retextured in Meshy with explicit "no studio lighting, flat albedo,
-              // uniform exposure" prompt, so PBR lighting + layer isolation renders it clean.
-              m.roughness = 0.70;
-              m.metalness = 0.0;
-              m.transparent = false;
-              m.opacity = 1.0;
-              m.depthWrite = true;
-              m.depthTest = true;
-              m.alphaTest = 0;
-              // Keep tone mapping (so it blends with scene) but disable fog
-              // (fog would tint the figure cold blue over distance)
-              m.toneMapped = true;
-              m.fog = false;
               m.side = T.FrontSide;
               m.needsUpdate = true;
             });
