@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v16.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v17.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -422,29 +422,10 @@
               // STUDIO env (not scene env) at high intensity = Meshy-preview look
               m.envMap = studioEnv || null;
               m.envMapIntensity = studioEnv ? 3.5 : 0;
-              // Match Meshy's default material response
+              // Match Meshy's default material response. v=86 marquis-v17.glb was
+              // retextured in Meshy with explicit "no studio lighting, flat albedo,
+              // uniform exposure" prompt, so PBR lighting + layer isolation renders it clean.
               m.roughness = 0.70;
-              // UNLIT OVERRIDE: swap to MeshBasicMaterial so the figure shows its
-              // baked Meshy texture colors directly — no scene lights, no studio
-              // lights, no shading. Looks identical to the Meshy website preview.
-              try {
-                const basic = new T.MeshBasicMaterial({
-                  map: m.map || null,
-                  color: 0xffffff,
-                  toneMapped: false,
-                  fog: false,
-                  transparent: false,
-                  side: T.FrontSide
-                });
-                if(m.map){ m.map.colorSpace = T.SRGBColorSpace; m.map.needsUpdate = true; }
-                // Attach the basic material in place of the PBR one
-                if(Array.isArray(o.material)){
-                  const idx = o.material.indexOf(m);
-                  if(idx >= 0) o.material[idx] = basic;
-                } else {
-                  o.material = basic;
-                }
-              } catch(e){ console.warn(MARK, 'unlit swap:', e.message); }
               m.metalness = 0.0;
               m.transparent = false;
               m.opacity = 1.0;
@@ -494,7 +475,7 @@
           root.position.set(16, -bbox2.min.y + 1.0, 6);
           root.rotation.y = -Math.PI / 8;  // mostly face-on
           sc.add(root);
-          console.log(MARK, 'marquis-v16.glb loaded (clean solid PBR, no hologram)');
+          console.log(MARK, 'marquis-v17.glb loaded (clean solid PBR, no hologram)');
 
           // Premium two-tier plinth
           const base = new T.Mesh(
