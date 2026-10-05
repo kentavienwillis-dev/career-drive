@@ -345,7 +345,7 @@
       window.__v3StatueLoading = true;
       const loader = new T.GLTFLoader();
       // Load MeshoptDecoder for meshopt-compressed GLB (preserves original UVs — no decimation)
-      const startLoad = () => loader.load('marquis-v17.glb', gltf => {
+      const startLoad = () => loader.load('marquis-v18.glb', gltf => {
         try{
           const root = gltf.scene || gltf.scenes[0];
           root.name = 'v3-start-statue';
@@ -459,7 +459,7 @@
           root.position.set(16, -bbox2.min.y + 1.0, 6);
           root.rotation.y = -Math.PI / 8;  // mostly face-on
           sc.add(root);
-          console.log(MARK, 'marquis-v17.glb loaded (clean solid PBR, no hologram)');
+          console.log(MARK, 'marquis-v18.glb loaded (clean solid PBR, no hologram)');
 
           // Premium two-tier plinth
           const base = new T.Mesh(
