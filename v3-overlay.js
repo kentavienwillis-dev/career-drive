@@ -418,10 +418,12 @@
               m.emissiveMap = null;
               if(m.emissive) m.emissive.setHex(0x000000);
               m.emissiveIntensity = 0;
-              if(m.color) m.color.setHex(0xffffff);
-              // STUDIO env (not scene env) at high intensity = Meshy-preview look
-              m.envMap = studioEnv || null;
-              m.envMapIntensity = studioEnv ? 0.9 : 0;
+              // v=88 pass 3: Meshy's prompt-baked texture is TOO bright, so multiply
+              // base color down to 65% to bring the suit into a readable mid-gray range.
+              if(m.color) m.color.setHex(0xa5a5a5);
+              // No env reflection — texture + direct lights only (texture is already uniform).
+              m.envMap = null;
+              m.envMapIntensity = 0;
               // Match Meshy's default material response. v=86 marquis-v17.glb was
               // retextured in Meshy with explicit "no studio lighting, flat albedo,
               // uniform exposure" prompt, so PBR lighting + layer isolation renders it clean.
