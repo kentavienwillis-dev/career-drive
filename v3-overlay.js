@@ -426,6 +426,16 @@
               // Force non-metallic + fabric-like roughness so baseColor renders as DIFFUSE.
               m.metalness = 0.0;
               m.roughness = 0.85;
+              // v=92: force everything else to defaults so NOTHING darkens or tints
+              m.emissiveIntensity = 0;
+              if(m.emissive) m.emissive.setHex(0x000000);
+              m.envMap = null;
+              m.envMapIntensity = 0;
+              if(m.color) m.color.setHex(0xffffff);
+              m.toneMapped = false;  // render texture colors true, no tone-map darkening
+              m.fog = false;         // no cold-blue scene fog on the figure
+              m.transparent = false;
+              m.opacity = 1.0;
               m.side = T.FrontSide;
               m.needsUpdate = true;
             });
@@ -528,22 +538,29 @@
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // v=87: Meshy's v17 texture was pre-baked with flat/uniform exposure
-            // per our prompt, so the figure needs SOFT lighting, not studio hot-light.
-            // Previous rig blew out to pure white. Dialed way down + removed over-lights.
-            const key = new T.PointLight(0xfff8ec, 320, 18, 1.0);
+            // v=92: With metalness=0 + toneMapped=false the Meshy texture renders as
+            // pure diffuse, but its baseColor is quite DARK (verified by dumping texture).
+            // Need stronger lighting to brighten the gray suit / brown skin / black hair
+            // to readable levels. 4-direction rig + strong hemi.
+            const key = new T.PointLight(0xffffff, 800, 20, 1.0);
             key.position.set(19, 11, 10);
             fillGrp.add(key);
-            const fill = new T.PointLight(0xfff0d8, 180, 14, 1.1);
+            const fill = new T.PointLight(0xffffff, 500, 16, 1.1);
             fill.position.set(13, 9, 9);
             fillGrp.add(fill);
-            const rim = new T.PointLight(0xeef4ff, 120, 14, 1.2);
+            const front = new T.PointLight(0xffffff, 450, 14, 1.0);
+            front.position.set(16, 6, 11);
+            fillGrp.add(front);
+            const rim = new T.PointLight(0xffffff, 250, 14, 1.2);
             rim.position.set(16, 10, 2);
             fillGrp.add(rim);
-            // Local hemi provides even base so shadow sides don't go pitch black.
-            const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 0.9);
+            // Strong neutral hemi so the diffuse-only material has even base light.
+            const hemi = new T.HemisphereLight(0xffffff, 0xffffff, 2.5);
             hemi.position.set(16, 10, 6);
             fillGrp.add(hemi);
+            // Pure ambient on layer 2 so the darkest texture pixels still have some level.
+            const ambient = new T.AmbientLight(0xffffff, 0.8);
+            fillGrp.add(ambient);
             sc.add(fillGrp);
             // LAYER ISOLATION: statue + its studio rig go on layer 2 so NO scene light
             // (SpotLights at 1500 intensity, colored city lights) can touch the figure.
