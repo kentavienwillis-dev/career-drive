@@ -420,6 +420,12 @@
               if(m.normalMap){ m.normalMap.colorSpace = T.NoColorSpace; m.normalMap.needsUpdate = true; }
               if(m.roughnessMap){ m.roughnessMap.colorSpace = T.NoColorSpace; m.roughnessMap.needsUpdate = true; }
               if(m.metalnessMap){ m.metalnessMap.colorSpace = T.NoColorSpace; m.metalnessMap.needsUpdate = true; }
+              // v=91 THE REAL FIX: Meshy ships this GLB with metalness=1 which makes
+              // Three.js treat the baseColor as reflection tint not diffuse color.
+              // That is why the texture never showed properly as colored skin/suit.
+              // Force non-metallic + fabric-like roughness so baseColor renders as DIFFUSE.
+              m.metalness = 0.0;
+              m.roughness = 0.85;
               m.side = T.FrontSide;
               m.needsUpdate = true;
             });
