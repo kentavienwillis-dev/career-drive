@@ -421,7 +421,7 @@
               if(m.color) m.color.setHex(0xffffff);
               // STUDIO env (not scene env) at high intensity = Meshy-preview look
               m.envMap = studioEnv || null;
-              m.envMapIntensity = studioEnv ? 3.5 : 0;
+              m.envMapIntensity = studioEnv ? 0.9 : 0;
               // Match Meshy's default material response. v=86 marquis-v17.glb was
               // retextured in Meshy with explicit "no studio lighting, flat albedo,
               // uniform exposure" prompt, so PBR lighting + layer isolation renders it clean.
@@ -538,28 +538,20 @@
           if(!sc.getObjectByName('v3c-statue-fill')){
             const fillGrp = new T.Group();
             fillGrp.name = 'v3c-statue-fill';
-            // KEY — bright warm-white top-right (primary studio light)
-            const key = new T.PointLight(0xfff8ec, 1400, 22, 0.9);
+            // v=87: Meshy's v17 texture was pre-baked with flat/uniform exposure
+            // per our prompt, so the figure needs SOFT lighting, not studio hot-light.
+            // Previous rig blew out to pure white. Dialed way down + removed over-lights.
+            const key = new T.PointLight(0xfff8ec, 320, 18, 1.0);
             key.position.set(19, 11, 10);
             fillGrp.add(key);
-            // FILL — soft warm top-left (reduces shadow density)
-            const fill = new T.PointLight(0xfff0d8, 800, 18, 1.0);
+            const fill = new T.PointLight(0xfff0d8, 180, 14, 1.1);
             fill.position.set(13, 9, 9);
             fillGrp.add(fill);
-            // RIM — cool neutral behind-above (silhouette separation)
-            const rim = new T.PointLight(0xeef4ff, 500, 16, 1.1);
+            const rim = new T.PointLight(0xeef4ff, 120, 14, 1.2);
             rim.position.set(16, 10, 2);
             fillGrp.add(rim);
-            // FRONT — direct front-fill aimed at chest/body (not face) to avoid blow-out
-            const front = new T.PointLight(0xfff6e6, 420, 14, 1.1);
-            front.position.set(16, 4.5, 11);
-            fillGrp.add(front);
-            // BODY — low front-right throws light onto suit/legs so the gray reads gray
-            const body = new T.PointLight(0xffeedc, 350, 12, 1.2);
-            body.position.set(18, 3.5, 10);
-            fillGrp.add(body);
-            // LOCAL HEMI — bright uniform ambient so shadow sides read
-            const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 3.2);
+            // Local hemi provides even base so shadow sides don't go pitch black.
+            const hemi = new T.HemisphereLight(0xffffff, 0xd8d4c8, 0.9);
             hemi.position.set(16, 10, 6);
             fillGrp.add(hemi);
             sc.add(fillGrp);
