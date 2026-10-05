@@ -424,6 +424,27 @@
               m.envMapIntensity = studioEnv ? 3.5 : 0;
               // Match Meshy's default material response
               m.roughness = 0.70;
+              // UNLIT OVERRIDE: swap to MeshBasicMaterial so the figure shows its
+              // baked Meshy texture colors directly — no scene lights, no studio
+              // lights, no shading. Looks identical to the Meshy website preview.
+              try {
+                const basic = new T.MeshBasicMaterial({
+                  map: m.map || null,
+                  color: 0xffffff,
+                  toneMapped: false,
+                  fog: false,
+                  transparent: false,
+                  side: T.FrontSide
+                });
+                if(m.map){ m.map.colorSpace = T.SRGBColorSpace; m.map.needsUpdate = true; }
+                // Attach the basic material in place of the PBR one
+                if(Array.isArray(o.material)){
+                  const idx = o.material.indexOf(m);
+                  if(idx >= 0) o.material[idx] = basic;
+                } else {
+                  o.material = basic;
+                }
+              } catch(e){ console.warn(MARK, 'unlit swap:', e.message); }
               m.metalness = 0.0;
               m.transparent = false;
               m.opacity = 1.0;
